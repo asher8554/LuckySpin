@@ -47,15 +47,24 @@ export function parseEntries(input: string): ParsedEntry[] {
 }
 
 export function expandEntries(entries: ParsedEntry[]): MarbleEntry[] {
-  return entries.flatMap((entry) =>
-    Array.from({ length: entry.count }, (_, duplicateIndex) => ({
-      id: `${entry.name}-${entry.weight}-${duplicateIndex}`,
-      name: entry.name,
-      label: entry.name,
-      weight: entry.weight,
-      duplicateIndex,
-    })),
-  );
+  const duplicateIndexes = new Map<string, number>();
+
+  return entries.flatMap((entry) => {
+    const key = `${entry.name}-${entry.weight}`;
+
+    return Array.from({ length: entry.count }, () => {
+      const duplicateIndex = duplicateIndexes.get(key) ?? 0;
+      duplicateIndexes.set(key, duplicateIndex + 1);
+
+      return {
+        id: `${entry.name}-${entry.weight}-${duplicateIndex}`,
+        name: entry.name,
+        label: entry.name,
+        weight: entry.weight,
+        duplicateIndex,
+      };
+    });
+  });
 }
 
 function seededRandom(seed: number) {
@@ -80,7 +89,7 @@ export function shuffleEntries(entries: MarbleEntry[], seed = Date.now()): Marbl
 }
 
 export function clampWinnerRank(rank: number, total: number) {
-  if (total <= 0 || !Number.isFinite(rank)) {
+  if (!Number.isFinite(total) || total <= 0 || !Number.isFinite(rank)) {
     return 1;
   }
 

@@ -40,6 +40,13 @@ describe("expandEntries", () => {
       "수박-1-1",
     ]);
   });
+
+  it("같은 이름과 weight가 여러 토큰에 있어도 고유한 id를 붙인다", () => {
+    expect(expandEntries(parseEntries("수박,수박")).map((entry) => entry.id)).toEqual([
+      "수박-1-0",
+      "수박-1-1",
+    ]);
+  });
 });
 
 describe("shuffleEntries", () => {
@@ -61,5 +68,7 @@ describe("clampWinnerRank", () => {
     expect(clampWinnerRank(0, 6)).toBe(1);
     expect(clampWinnerRank(7, 6)).toBe(6);
     expect(clampWinnerRank(Number.NaN, 6)).toBe(1);
+    expect(clampWinnerRank(2, 0)).toBe(1);
+    expect(clampWinnerRank(2, Number.NaN)).toBe(1);
   });
 });
