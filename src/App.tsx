@@ -37,6 +37,7 @@ export default function App() {
   const parsedEntries = useMemo(() => parseEntries(names), [names]);
   const expandedEntries = useMemo(() => expandEntries(parsedEntries), [parsedEntries]);
   const total = expandedEntries.length;
+  const canvasEntries = status === "running" ? runEntries : expandedEntries;
   const winnerRank =
     winnerMode === "last"
       ? Math.max(total, 1)
@@ -59,11 +60,18 @@ export default function App() {
 
   useEffect(() => {
     saveNames(names);
-    setResults([]);
-    if (status !== "running") {
-      setStatus("idle");
-    }
-  }, [names, status]);
+  }, [names]);
+
+  const handleNamesChange = useCallback(
+    (value: string) => {
+      setNames(value);
+      setResults([]);
+      if (status !== "running") {
+        setStatus("idle");
+      }
+    },
+    [status],
+  );
 
   const handleShuffle = useCallback(() => {
     if (status === "running") {
@@ -105,6 +113,13 @@ export default function App() {
     [pushToast],
   );
 
+  const handleUnsupported = useCallback(
+    (feature: string) => {
+      pushToast(`${feature} 기능은 첫 버전에서 지원하지 않습니다.`);
+    },
+    [pushToast],
+  );
+
   const handleResult = useCallback((result: RouletteResult) => {
     setResults((current) => (current.some((item) => item.id === result.id) ? current : [...current, result]));
   }, []);
@@ -117,7 +132,7 @@ export default function App() {
   return (
     <main className="roulette-app">
       <RouletteCanvas
-        entries={runEntries}
+        entries={canvasEntries}
         status={status}
         theme={theme}
         onResult={handleResult}
@@ -133,14 +148,14 @@ export default function App() {
         total={total}
         status={status}
         collapsed={collapsed}
-        onNamesChange={setNames}
+        onNamesChange={handleNamesChange}
         onShuffle={handleShuffle}
         onStart={handleStart}
         onMapChange={handleMapChange}
         onThemeChange={setTheme}
         onWinnerModeChange={setWinnerMode}
         onWinnerRankChange={setCustomWinnerRank}
-        onUnsupported={(feature) => pushToast(`${feature} 기능은 첫 버전에서 지원하지 않습니다.`)}
+        onUnsupported={handleUnsupported}
         onNotice={() => setNoticeOpen(true)}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />

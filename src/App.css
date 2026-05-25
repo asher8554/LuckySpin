@@ -119,7 +119,7 @@ button:disabled {
   transform: translateY(8px);
 }
 
-.mobile-settings-toggle {
+.control-panel .mobile-settings-toggle {
   display: none;
 }
 
@@ -411,7 +411,7 @@ button:disabled {
     overflow: auto;
   }
 
-  .mobile-settings-toggle {
+  .control-panel .mobile-settings-toggle {
     display: flex;
     width: 100%;
     margin-bottom: 8px;
@@ -442,6 +442,6 @@ button:disabled {
   }
 
   .copyright {
-    font-size: 10px;
+    display: none;
   }
 }

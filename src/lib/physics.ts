@@ -98,6 +98,7 @@ export function drawRouletteScene(
   world: RouletteWorld | null,
   size: WorldSize,
   theme: ThemeMode,
+  previewEntries: MarbleEntry[] = [],
 ) {
   context.clearRect(0, 0, size.width, size.height);
   context.fillStyle = theme === "dark" ? "#020302" : "#f4f6f7";
@@ -129,6 +130,7 @@ export function drawRouletteScene(
   context.restore();
 
   if (!world) {
+    drawPreviewMarbles(context, previewEntries, size);
     return;
   }
 
@@ -140,4 +142,21 @@ export function drawRouletteScene(
     context.textAlign = "center";
     context.fillText(marble.entry.label, marble.body.position.x, marble.body.position.y + marbleRadius + 24);
   }
+}
+
+function drawPreviewMarbles(context: CanvasRenderingContext2D, entries: MarbleEntry[], size: WorldSize) {
+  const centerY = size.height * 0.48;
+  const startX = Math.max(300, size.width * 0.28);
+  const gap = Math.min(92, Math.max(66, size.width / Math.max(entries.length + 4, 8)));
+
+  entries.forEach((entry, index) => {
+    const x = startX + index * gap;
+    const y = centerY + Math.sin(index * 0.65) * 8;
+    drawFruitMarble(context, entry, x, y, marbleRadius);
+    const style = getFruitStyle(entry.name);
+    context.fillStyle = style.text;
+    context.font = "700 26px 'Segoe UI', sans-serif";
+    context.textAlign = "center";
+    context.fillText(entry.label, x, y + marbleRadius + 24);
+  });
 }

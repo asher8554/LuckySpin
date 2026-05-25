@@ -69,8 +69,8 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
     }
 
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    drawRouletteScene(context, worldRef.current, size, theme);
-  }, [size, theme]);
+    drawRouletteScene(context, worldRef.current, size, theme, entries);
+  }, [entries, size, theme]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -102,7 +102,7 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
     Runner.run(world.runner, world.engine);
 
     const tick = () => {
-      drawRouletteScene(context, worldRef.current, size, theme);
+      drawRouletteScene(context, worldRef.current, size, theme, entries);
       frameRef.current = requestAnimationFrame(tick);
     };
     tick();

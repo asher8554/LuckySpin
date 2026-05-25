@@ -1,0 +1,10 @@
+<!-- 사이트 파비콘으로 쓰는 수박 룰렛 아이콘이다. -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="14" fill="#020302"/>
+  <circle cx="32" cy="32" r="22" fill="#ff5757"/>
+  <circle cx="32" cy="32" r="18" fill="#f3fff0"/>
+  <circle cx="32" cy="32" r="14" fill="#ff5757"/>
+  <circle cx="25" cy="27" r="2" fill="#171717"/>
+  <circle cx="38" cy="27" r="2" fill="#171717"/>
+  <circle cx="31" cy="38" r="2" fill="#171717"/>
+</svg>
