@@ -28,3 +28,46 @@ textarea {
   place-items: center;
   text-align: center;
 }
+
+.control-panel {
+  position: fixed;
+  left: 1rem;
+  bottom: 1rem;
+  z-index: 20;
+  display: flex;
+  gap: 1rem;
+  width: min(720px, calc(100vw - 2rem));
+  padding: 10px;
+  color: #fff;
+  background: rgba(102, 102, 102, 0.94);
+  border-radius: 10px;
+}
+
+.mobile-settings-toggle {
+  display: none;
+}
+
+.name-panel {
+  flex: 1 1 auto;
+}
+
+.name-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.name-panel textarea {
+  width: 100%;
+  min-height: 5rem;
+  resize: vertical;
+}
+
+.action-row,
+.settings-row,
+.two-columns,
+.theme-row,
+.winner-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
