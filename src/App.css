@@ -1,8 +1,13 @@
-/* 앱 전체의 기본 테마와 임시 중앙 배치를 정의한다. */
+/* LuckySpin 룰렛 화면의 전체 시각 스타일을 정의한다. */
 :root {
   color: #f7f7f7;
-  background: #050505;
-  font-family: "Segoe UI", system-ui, sans-serif;
+  background: #020302;
+  font-family: "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+}
+
+:root[data-theme="light"] {
+  color: #171717;
+  background: #f4f6f7;
 }
 
 * {
@@ -13,6 +18,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  overflow: hidden;
 }
 
 button,
@@ -22,25 +28,95 @@ textarea {
   font: inherit;
 }
 
-.app-shell {
-  display: grid;
+button {
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid #22f7ef;
+  outline-offset: 2px;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.roulette-app {
+  position: relative;
   min-height: 100vh;
-  place-items: center;
-  text-align: center;
+}
+
+.roulette-canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  user-select: none;
+}
+
+.ranking-board {
+  position: fixed;
+  top: 12px;
+  right: 14px;
+  z-index: 15;
+  min-width: 120px;
+  text-align: right;
+  text-shadow: -2px 0 #020302, 0 2px #020302, 2px 0 #020302, 0 -2px #020302;
+}
+
+.ranking-count {
+  margin-bottom: 6px;
+  color: #9b9b9b;
+  font-size: 26px;
+  font-weight: 800;
+}
+
+.ranking-board ol {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking-board li {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.35rem;
+  font-size: 26px;
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.ranking-board li.selected {
+  filter: drop-shadow(0 0 8px currentColor);
 }
 
 .control-panel {
   position: fixed;
   left: 1rem;
-  bottom: 1rem;
+  bottom: 1.45rem;
   z-index: 20;
   display: flex;
   gap: 1rem;
-  width: min(720px, calc(100vw - 2rem));
+  width: min(730px, calc(100vw - 2rem));
+  min-height: 150px;
   padding: 10px;
   color: #fff;
   background: rgba(102, 102, 102, 0.94);
   border-radius: 10px;
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.control-panel.is-running {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px);
 }
 
 .mobile-settings-toggle {
@@ -48,26 +124,324 @@ textarea {
 }
 
 .name-panel {
-  flex: 1 1 auto;
+  flex: 1 1 260px;
+  min-width: 0;
 }
 
 .name-panel h2 {
-  margin: 0;
-  font-size: 1rem;
+  margin: 0 0 2px;
+  color: #fff;
+  font-size: 16px;
+  line-height: 1.2;
 }
 
 .name-panel textarea {
+  display: block;
   width: 100%;
-  min-height: 5rem;
+  min-height: 80px;
   resize: vertical;
+  color: #020302;
+  background: #a8a8a8;
+  border: 0;
+  border-radius: 0;
+  padding: 5px;
+  font-size: 19px;
 }
 
-.action-row,
-.settings-row,
-.two-columns,
-.theme-row,
-.winner-group {
+.action-row {
   display: flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 3px;
+  margin-top: 4px;
+}
+
+.control-panel button,
+.control-panel .shop-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 36px;
+  color: #fff;
+  background: #202020;
+  border: 0;
+  border-radius: 5px;
+  padding: 5px 10px;
+  text-decoration: none;
+}
+
+.shop-button {
+  position: relative;
+}
+
+.shop-button span {
+  position: absolute;
+  top: -8px;
+  right: -9px;
+  padding: 1px 4px;
+  background: #d20f19;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.action-spacer {
+  flex: 1 1 auto;
+}
+
+.settings-panel {
+  flex: 0 0 395px;
+  display: grid;
+  gap: 5px;
+}
+
+.settings-row {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: center;
+  min-height: 35px;
+}
+
+.settings-row > span,
+.settings-row label > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.settings-row select,
+.winner-group input {
+  width: 100%;
+  min-width: 0;
+  height: 26px;
+  border: 0;
+  border-radius: 5px;
+  background: #9a9a9a;
+}
+
+.two-columns {
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.two-columns label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.winner-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.7fr;
+  overflow: hidden;
+  border-radius: 12px;
+}
+
+.winner-group button,
+.winner-group input {
+  height: 26px;
+  min-height: 26px;
+  border-radius: 0;
+  background: #999;
+  text-align: center;
+}
+
+.winner-group button.active {
+  background: #303030;
+}
+
+.theme-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.switch input,
+.two-columns input[type="checkbox"] {
+  inline-size: 50px;
+  block-size: 26px;
+  appearance: none;
+  position: relative;
+  margin: 0;
+}
+
+.switch input::before,
+.two-columns input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: #9a9a9a;
+  border-radius: 999px;
+}
+
+.switch input::after,
+.two-columns input[type="checkbox"]::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 26px;
+  block-size: 26px;
+  background: #f7f7f7;
+  border-radius: 999px;
+  transition: transform 0.2s ease;
+}
+
+.switch input:checked::before,
+.two-columns input[type="checkbox"]:checked::before {
+  background: #00baff;
+}
+
+.switch input:checked::after,
+.two-columns input[type="checkbox"]:checked::after {
+  transform: translateX(24px);
+}
+
+.notice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.notice-modal {
+  width: min(500px, 90vw);
+  overflow: hidden;
+  color: #222;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 26px;
+}
+
+.notice-modal h2 {
+  margin: 0;
+  padding: 12px;
+  color: #050505;
+  background: #58c9af;
+  border-bottom: 4px solid #2c8470;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.notice-body {
+  padding: 14px 18px;
+}
+
+.notice-actions {
+  display: flex;
+  justify-content: center;
+  padding: 0 18px 18px;
+}
+
+.notice-actions button {
+  width: 50%;
+  min-height: 48px;
+  color: #fff;
+  background: #202020;
+  border: 0;
+  border-radius: 10px;
+}
+
+.toast-host {
+  position: fixed;
+  left: 50%;
+  bottom: 14px;
+  z-index: 60;
+  display: grid;
+  gap: 6px;
+  transform: translateX(-50%);
+}
+
+.toast {
+  color: #171717;
+  background: #d8d8d8;
+  border-radius: 4px;
+  padding: 8px 12px;
+  animation: toast-in 0.18s ease;
+}
+
+.copyright {
+  position: fixed;
+  left: 50%;
+  bottom: 2px;
+  z-index: 10;
+  width: 90%;
+  color: currentColor;
+  font-size: 12px;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow: auto;
+  }
+
+  .ranking-board {
+    right: 8px;
+  }
+
+  .ranking-board li,
+  .ranking-count {
+    font-size: 20px;
+  }
+
+  .control-panel {
+    display: block;
+    left: 1rem;
+    right: 1rem;
+    bottom: 58px;
+    width: auto;
+    max-height: calc(100vh - 80px);
+    overflow: auto;
+  }
+
+  .mobile-settings-toggle {
+    display: flex;
+    width: 100%;
+    margin-bottom: 8px;
+  }
+
+  .settings-panel.collapsed {
+    display: none;
+  }
+
+  .settings-panel {
+    margin-bottom: 8px;
+  }
+
+  .settings-row {
+    grid-template-columns: 1fr;
+    gap: 5px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  }
+
+  .two-columns {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .name-panel textarea {
+    min-height: 46px;
+    font-size: 16px;
+  }
+
+  .copyright {
+    font-size: 10px;
+  }
 }
