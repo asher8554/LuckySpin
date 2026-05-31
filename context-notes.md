@@ -33,3 +33,6 @@
 - 사용자가 GitHub Pages로 열어보고 싶다고 요청했다. Vite 앱은 이미 `base: "/LuckySpin/"`로 설정되어 있어 프로젝트 Pages URL과 맞는다.
 - GitHub Pages는 빌드 단계가 필요한 Vite 앱이므로 GitHub Actions에서 `npm ci`, `npm run build`, Pages artifact 업로드, Pages 배포를 수행하는 방식으로 설정한다.
 - README에는 Pages URL, 로컬 실행 방법, 입력 문법, 구현된 기능과 첫 버전 미지원 기능을 기록한다.
+- 사용자가 원본 `https://lazygyu.github.io/roulette/`과 구현이 너무 다르다고 지적했다. 우선 같은 viewport로 원본과 현재 구현을 캡처한 뒤, 전체 구조보다 눈에 띄는 시각 차이를 줄이는 쪽으로 개선한다.
+- 1280x720 원본 비교에서 가장 큰 차이는 기본 공지 모달 부재, 왼쪽 회색 맵 미니뷰 부재, 트랙의 두께와 위치, 우승자 대형 표시 부재, 순위판 체크/별 표시 부재였다.
+- 개선으로 기본 NOTICE 모달과 할인 배너, 왼쪽 맵 미니뷰, 원본에 가까운 얇은 네온 트랙, 과일 질감 강화, 우승자 오버레이, 순위판 기호를 추가했다. 트랙 변경 후 일부 구슬이 늦게 도착해 9초 fallback 집계를 추가했다.

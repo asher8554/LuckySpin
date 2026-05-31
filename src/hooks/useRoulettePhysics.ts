@@ -26,14 +26,21 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const worldRef = useRef<RouletteWorld | null>(null);
   const frameRef = useRef<number | null>(null);
+  const fallbackRef = useRef<number | null>(null);
   const cleanupFinishRef = useRef<(() => void) | null>(null);
   const [size, setSize] = useState<WorldSize>(getViewportSize);
   const resultCountRef = useRef(0);
+  const finishedIdsRef = useRef<Set<string>>(new Set());
 
   const cleanupWorld = useCallback(() => {
     if (frameRef.current !== null) {
       cancelAnimationFrame(frameRef.current);
       frameRef.current = null;
+    }
+
+    if (fallbackRef.current !== null) {
+      window.clearTimeout(fallbackRef.current);
+      fallbackRef.current = null;
     }
 
     cleanupFinishRef.current?.();
@@ -84,6 +91,7 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
 
     cleanupWorld();
     resultCountRef.current = 0;
+    finishedIdsRef.current = new Set();
     const ratio = window.devicePixelRatio || 1;
     canvas.width = Math.floor(size.width * ratio);
     canvas.height = Math.floor(size.height * ratio);
@@ -92,12 +100,32 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
     const world = createRouletteWorld(entries, size);
     worldRef.current = world;
     cleanupFinishRef.current = subscribeToFinish(world, (result) => {
+      finishedIdsRef.current.add(result.id);
       resultCountRef.current += 1;
       onResult(result);
       if (resultCountRef.current >= entries.length) {
         onComplete();
       }
     });
+
+    fallbackRef.current = window.setTimeout(() => {
+      const currentWorld = worldRef.current;
+      if (!currentWorld || resultCountRef.current >= entries.length) {
+        return;
+      }
+
+      const pending = currentWorld.marbles
+        .filter((marble) => !finishedIdsRef.current.has(marble.entry.id))
+        .sort((left, right) => right.body.position.y - left.body.position.y || right.body.position.x - left.body.position.x);
+
+      for (const marble of pending) {
+        finishedIdsRef.current.add(marble.entry.id);
+        resultCountRef.current += 1;
+        onResult({ ...marble.entry, rank: resultCountRef.current });
+      }
+
+      onComplete();
+    }, 9000);
 
     Runner.run(world.runner, world.engine);
 

@@ -5,6 +5,7 @@ import { NoticeModal } from "./components/NoticeModal";
 import { RankingBoard } from "./components/RankingBoard";
 import { RouletteCanvas } from "./components/RouletteCanvas";
 import { ToastHost } from "./components/ToastHost";
+import { WinnerOverlay } from "./components/WinnerOverlay";
 import { clampWinnerRank, expandEntries, parseEntries, ROULETTE_MAPS, shuffleEntries } from "./lib/roulette";
 import { loadNames, loadTheme, saveNames, saveTheme } from "./lib/storage";
 import type {
@@ -29,7 +30,7 @@ export default function App() {
   const [customWinnerRank, setCustomWinnerRank] = useState(1);
   const [status, setStatus] = useState<RouletteStatus>("idle");
   const [collapsed, setCollapsed] = useState(true);
-  const [noticeOpen, setNoticeOpen] = useState(false);
+  const [noticeOpen, setNoticeOpen] = useState(true);
   const [results, setResults] = useState<RouletteResult[]>([]);
   const [runEntries, setRunEntries] = useState<MarbleEntry[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -139,6 +140,7 @@ export default function App() {
         onComplete={handleComplete}
       />
       <RankingBoard total={total} results={results} selectedRank={winnerRank} />
+      <WinnerOverlay winner={results.find((result) => result.rank === winnerRank)} />
       <ControlPanel
         names={names}
         mapId={mapId}

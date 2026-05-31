@@ -19,27 +19,27 @@ type CollisionEvent = {
   pairs: Array<{ bodyA: Body; bodyB: Body }>;
 };
 
-const marbleRadius = 28;
+const marbleRadius = 24;
 
 export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize): RouletteWorld {
-  const engine = Engine.create({ gravity: { x: 0.75, y: 0.8 } });
+  const engine = Engine.create({ gravity: { x: 0.45, y: 0.95 } });
   const runner = Runner.create();
   const railStyle = { isStatic: true, render: { visible: false } };
-  const leftWall = Bodies.rectangle(120, size.height * 0.35, 28, size.height * 0.7, railStyle);
-  const lowerRail = Bodies.rectangle(size.width * 0.6, size.height * 0.68, size.width * 0.72, 18, {
+  const leftWall = Bodies.rectangle(238, size.height * 0.42, 22, size.height * 0.8, railStyle);
+  const lowerRail = Bodies.rectangle(size.width * 0.62, size.height * 0.64, size.width * 0.64, 14, {
     ...railStyle,
-    angle: -0.42,
+    angle: -0.55,
   });
-  const upperRail = Bodies.rectangle(size.width * 0.55, size.height * 0.5, size.width * 0.74, 18, {
+  const upperRail = Bodies.rectangle(size.width * 0.63, size.height * 0.43, size.width * 0.58, 14, {
     ...railStyle,
-    angle: -0.42,
+    angle: 0.72,
   });
-  const deflector = Bodies.rectangle(size.width * 0.35, size.height * 0.64, 180, 18, {
+  const deflector = Bodies.rectangle(size.width * 0.42, size.height * 0.5, 200, 14, {
     ...railStyle,
-    angle: 0.75,
+    angle: -0.18,
   });
   const floor = Bodies.rectangle(size.width / 2, size.height + 40, size.width, 80, railStyle);
-  const finish = Bodies.rectangle(size.width - 90, size.height * 0.25, 80, size.height * 0.5, {
+  const finish = Bodies.rectangle(size.width / 2, size.height - 34, size.width, 90, {
     isStatic: true,
     isSensor: true,
     label: "finish",
@@ -47,13 +47,13 @@ export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize): Ro
   const marbles = entries.map((entry, index) => {
     const row = Math.floor(index / 8);
     const column = index % 8;
-    const body = Bodies.circle(180 + column * 72, 110 + row * 64, marbleRadius, {
+    const body = Bodies.circle(300 + column * 58, 94 + row * 56, marbleRadius, {
       restitution: 0.32,
       friction: 0.02,
       frictionAir: 0.004,
       label: entry.id,
     });
-    Body.setVelocity(body, { x: 7 + entry.weight * 0.3 + column * 0.08, y: 0.5 + row * 0.2 });
+    Body.setVelocity(body, { x: 5.6 + entry.weight * 0.2 + column * 0.07, y: 0.5 + row * 0.2 });
     return { entry, body };
   });
 
@@ -104,30 +104,8 @@ export function drawRouletteScene(
   context.fillStyle = theme === "dark" ? "#020302" : "#f4f6f7";
   context.fillRect(0, 0, size.width, size.height);
 
-  context.save();
-  context.strokeStyle = theme === "dark" ? "#dffffd" : "#1d7271";
-  context.shadowColor = "#22f7ef";
-  context.shadowBlur = theme === "dark" ? 18 : 4;
-  context.lineWidth = 10;
-  context.beginPath();
-  context.moveTo(20, size.height * 0.35);
-  context.lineTo(230, size.height * 0.58);
-  context.lineTo(450, size.height * 0.42);
-  context.lineTo(size.width - 30, 20);
-  context.stroke();
-  context.beginPath();
-  context.moveTo(20, size.height * 0.68);
-  context.lineTo(260, size.height * 0.9);
-  context.lineTo(450, size.height * 0.7);
-  context.lineTo(size.width - 30, size.height * 0.31);
-  context.stroke();
-  context.restore();
-
-  context.save();
-  context.strokeStyle = theme === "dark" ? "rgba(0, 255, 108, 0.7)" : "rgba(0, 120, 64, 0.7)";
-  context.lineWidth = 3;
-  context.strokeRect(18, 18, 210, size.height - 38);
-  context.restore();
+  drawMapPreview(context, size, theme);
+  drawMainRails(context, size, theme);
 
   if (!world) {
     drawPreviewMarbles(context, previewEntries, size);
@@ -138,25 +116,115 @@ export function drawRouletteScene(
     drawFruitMarble(context, marble.entry, marble.body.position.x, marble.body.position.y, marbleRadius);
     const style = getFruitStyle(marble.entry.name);
     context.fillStyle = style.text;
-    context.font = "700 26px 'Segoe UI', sans-serif";
+    context.font = "900 24px 'Segoe UI', sans-serif";
     context.textAlign = "center";
-    context.fillText(marble.entry.label, marble.body.position.x, marble.body.position.y + marbleRadius + 24);
+    context.shadowColor = "#041111";
+    context.shadowBlur = 5;
+    context.fillText(marble.entry.label, marble.body.position.x, marble.body.position.y + marbleRadius + 22);
   }
 }
 
+function drawMainRails(context: CanvasRenderingContext2D, size: WorldSize, theme: ThemeMode) {
+  context.save();
+  context.strokeStyle = theme === "dark" ? "#dffffd" : "#1d7271";
+  context.shadowColor = "#22f7ef";
+  context.shadowBlur = theme === "dark" ? 16 : 4;
+  context.lineWidth = 5;
+  context.beginPath();
+  context.moveTo(size.width * 0.38, -10);
+  context.lineTo(size.width * 0.52, size.height * 0.5);
+  context.lineTo(size.width * 0.88, -10);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(size.width * 0.34, size.height * 0.51);
+  context.lineTo(size.width * 0.52, size.height * 0.46);
+  context.stroke();
+
+  context.strokeStyle = "#16f2e4";
+  context.shadowColor = "#16f2e4";
+  context.shadowBlur = 22;
+  context.lineWidth = 18;
+  context.beginPath();
+  context.moveTo(size.width * 0.34, size.height * 0.51);
+  context.lineTo(size.width * 0.49, size.height * 0.46);
+  context.stroke();
+
+  context.strokeStyle = "rgba(223, 255, 253, 0.82)";
+  context.shadowBlur = 10;
+  context.lineWidth = 6;
+  context.beginPath();
+  context.moveTo(size.width * 0.52, size.height * 0.5);
+  context.lineTo(size.width * 0.52, size.height + 30);
+  context.stroke();
+  context.restore();
+}
+
+function drawMapPreview(context: CanvasRenderingContext2D, size: WorldSize, theme: ThemeMode) {
+  const panelX = 18;
+  const panelY = 18;
+  const panelWidth = 210;
+  const panelHeight = size.height - 38;
+
+  context.save();
+  context.fillStyle = theme === "dark" ? "rgba(50, 50, 50, 0.9)" : "rgba(215, 218, 218, 0.88)";
+  context.fillRect(panelX, panelY, panelWidth, panelHeight);
+  context.save();
+  context.strokeStyle = theme === "dark" ? "rgba(0, 255, 108, 0.7)" : "rgba(0, 120, 64, 0.7)";
+  context.lineWidth = 3;
+  context.strokeRect(panelX, panelY, panelWidth, panelHeight);
+  context.restore();
+
+  context.strokeStyle = theme === "dark" ? "rgba(180, 180, 180, 0.35)" : "rgba(80, 80, 80, 0.35)";
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(92, panelY - 60);
+  context.lineTo(92, 88);
+  context.lineTo(36, 174);
+  context.lineTo(36, 228);
+  context.lineTo(136, 270);
+  context.lineTo(88, 326);
+  context.lineTo(88, 396);
+  context.lineTo(162, 452);
+  context.lineTo(92, 526);
+  context.lineTo(92, panelY + panelHeight + 70);
+  context.moveTo(152, panelY - 40);
+  context.lineTo(152, 94);
+  context.lineTo(96, 170);
+  context.lineTo(96, 199);
+  context.lineTo(211, 257);
+  context.lineTo(137, 319);
+  context.lineTo(137, 370);
+  context.lineTo(210, 436);
+  context.lineTo(150, 512);
+  context.lineTo(150, panelY + panelHeight + 70);
+  context.stroke();
+
+  context.strokeStyle = "rgba(34, 247, 239, 0.35)";
+  context.lineWidth = 4;
+  for (let index = 0; index < 6; index += 1) {
+    context.beginPath();
+    context.moveTo(118 + (index % 2) * 22, 244 + index * 16);
+    context.lineTo(124 + (index % 2) * 22, 248 + index * 16);
+    context.stroke();
+  }
+  context.restore();
+}
+
 function drawPreviewMarbles(context: CanvasRenderingContext2D, entries: MarbleEntry[], size: WorldSize) {
-  const centerY = size.height * 0.48;
-  const startX = Math.max(300, size.width * 0.28);
-  const gap = Math.min(92, Math.max(66, size.width / Math.max(entries.length + 4, 8)));
+  const centerY = size.height * 0.49;
+  const startX = Math.max(330, size.width * 0.27);
+  const gap = Math.min(92, Math.max(64, size.width / Math.max(entries.length + 7, 10)));
 
   entries.forEach((entry, index) => {
     const x = startX + index * gap;
-    const y = centerY + Math.sin(index * 0.65) * 8;
-    drawFruitMarble(context, entry, x, y, marbleRadius);
+    const y = centerY + Math.sin(index * 0.8) * 12;
+    drawFruitMarble(context, entry, x, y, marbleRadius + 10);
     const style = getFruitStyle(entry.name);
     context.fillStyle = style.text;
-    context.font = "700 26px 'Segoe UI', sans-serif";
+    context.font = "900 28px 'Segoe UI', sans-serif";
     context.textAlign = "center";
-    context.fillText(entry.label, x, y + marbleRadius + 24);
+    context.shadowColor = "#041111";
+    context.shadowBlur = 5;
+    context.fillText(entry.label, x, y + marbleRadius + 34);
   });
 }

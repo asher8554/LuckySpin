@@ -22,6 +22,7 @@ export function RankingBoard({ total, results, selectedRank }: RankingBoardProps
             key={`${result.id}-${result.rank}`}
             style={{ color: rankColors[index % rankColors.length] }}
           >
+            <em>{result.rank === selectedRank ? "☆" : result.rank <= 3 ? "✓" : ""}</em>
             <span>{result.name}</span>
             <strong>#{result.rank}</strong>
           </li>

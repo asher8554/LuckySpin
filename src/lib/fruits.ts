@@ -45,19 +45,29 @@ export function drawFruitMarble(
 
   context.save();
   context.translate(x, y);
-  context.shadowBlur = 12;
+  context.shadowBlur = 16;
   context.shadowColor = style.fill;
   context.fillStyle = style.ring;
   context.beginPath();
   context.arc(0, 0, radius, 0, Math.PI * 2);
   context.fill();
   context.shadowBlur = 0;
-  context.fillStyle = style.fill;
+
+  const pulp = context.createRadialGradient(-radius * 0.25, -radius * 0.25, radius * 0.1, 0, 0, radius * 0.82);
+  pulp.addColorStop(0, "#fff9d7");
+  pulp.addColorStop(0.18, style.fill);
+  pulp.addColorStop(1, style.kind === "kiwi" ? "#5d8e28" : style.kind === "orange" ? "#f1841a" : style.fill);
+  context.fillStyle = pulp;
   context.beginPath();
   context.arc(0, 0, radius * 0.82, 0, Math.PI * 2);
   context.fill();
 
   if (style.kind === "watermelon") {
+    context.strokeStyle = "rgba(255, 255, 255, 0.28)";
+    context.lineWidth = 1.5;
+    context.beginPath();
+    context.arc(0, 0, radius * 0.62, 0, Math.PI * 2);
+    context.stroke();
     context.fillStyle = "#171717";
     for (let index = 0; index < 8; index += 1) {
       const angle = (Math.PI * 2 * index) / 8;
@@ -76,10 +86,26 @@ export function drawFruitMarble(
   }
 
   if (style.kind === "kiwi") {
+    context.strokeStyle = "rgba(45, 95, 45, 0.5)";
+    context.lineWidth = 1;
+    for (let index = 0; index < 18; index += 1) {
+      const angle = (Math.PI * 2 * index) / 18;
+      context.beginPath();
+      context.moveTo(Math.cos(angle) * radius * 0.24, Math.sin(angle) * radius * 0.24);
+      context.lineTo(Math.cos(angle) * radius * 0.72, Math.sin(angle) * radius * 0.72);
+      context.stroke();
+    }
     context.fillStyle = "#f7f0b8";
     context.beginPath();
     context.arc(0, 0, radius * 0.25, 0, Math.PI * 2);
     context.fill();
+    context.fillStyle = "#202020";
+    for (let index = 0; index < 16; index += 1) {
+      const angle = (Math.PI * 2 * index) / 16;
+      context.beginPath();
+      context.arc(Math.cos(angle) * radius * 0.48, Math.sin(angle) * radius * 0.48, 1.2, 0, Math.PI * 2);
+      context.fill();
+    }
   }
 
   if (style.kind === "orange") {
