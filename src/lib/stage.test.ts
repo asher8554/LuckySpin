@@ -1,6 +1,8 @@
 // 원본 맵 데이터와 원본형 구슬 배치 계산을 검증한다.
 import { describe, expect, it } from "vitest";
 
+import { Body } from "matter-js";
+
 import {
   advanceRouletteWorld,
   createRouletteWorld,
@@ -78,10 +80,12 @@ describe("stage based physics", () => {
     const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 });
     const marble = world.marbles[0];
     let reachedGoal = false;
+    let maxY = marble.body.position.y;
 
     for (let step = 0; step < 3600; step += 1) {
       advanceRouletteWorld(world, 16.6);
-      if (step % 72 === 0) {
+      maxY = Math.max(maxY, marble.body.position.y);
+      if (step % 36 === 0) {
         shakeSlowMarbles(world);
       }
       if (marble.body.position.y > world.stage.goalY) {
@@ -90,7 +94,13 @@ describe("stage based physics", () => {
       }
     }
 
-    expect(reachedGoal).toBe(true);
+    const diagnostics = JSON.stringify({
+      x: marble.body.position.x,
+      y: marble.body.position.y,
+      maxY,
+      speed: Math.hypot(marble.body.velocity.x, marble.body.velocity.y),
+    });
+    expect(reachedGoal, diagnostics).toBe(true);
   });
 
   it("구슬은 회전 바퀴 충돌 뒤 맵 밖으로 폭발하지 않는다", () => {
@@ -103,7 +113,7 @@ describe("stage based physics", () => {
 
     for (let step = 0; step < 2400; step += 1) {
       advanceRouletteWorld(world, 16.6);
-      if (step % 72 === 0) {
+      if (step % 36 === 0) {
         shakeSlowMarbles(world);
       }
 
@@ -129,8 +139,96 @@ describe("stage based physics", () => {
       maxX: expect.any(Number),
     });
     const diagnostics = JSON.stringify({ maxSpeed, minX, maxX, minXBeforeGoal, maxXBeforeGoal });
-    expect(maxSpeed, diagnostics).toBeLessThan(1.2);
+    expect(maxSpeed, diagnostics).toBeLessThan(12.1);
     expect(minXBeforeGoal, diagnostics).toBeGreaterThan(-0.1);
     expect(maxXBeforeGoal, diagnostics).toBeLessThan(26.1);
+  });
+
+  it("여러 구슬도 긴 실행 중 벽을 통과하거나 순간 발사되지 않는다", () => {
+    const manyEntries = Array.from({ length: 18 }, (_, index) => ({
+      id: `entry-${index}`,
+      name: `entry-${index}`,
+      label: `${index}`,
+      weight: 1,
+      duplicateIndex: 0,
+    }));
+    const world = createRouletteWorld(manyEntries, { width: 1280, height: 720 });
+    let maxSpeed = 0;
+    let minX = Number.POSITIVE_INFINITY;
+    let maxX = Number.NEGATIVE_INFINITY;
+
+    for (let step = 0; step < 5200; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+      if (step % 36 === 0) {
+        shakeSlowMarbles(world);
+      }
+
+      for (const marble of world.marbles) {
+        const speed = Math.hypot(marble.body.velocity.x, marble.body.velocity.y);
+        maxSpeed = Math.max(maxSpeed, speed);
+        if (marble.body.position.y <= world.stage.goalY) {
+          minX = Math.min(minX, marble.body.position.x);
+          maxX = Math.max(maxX, marble.body.position.x);
+        }
+      }
+
+      if (world.marbles.some((marble) => marble.body.position.y > world.stage.goalY)) {
+        break;
+      }
+    }
+
+    const diagnostics = JSON.stringify({ maxSpeed, minX, maxX });
+    expect(maxSpeed, diagnostics).toBeLessThan(12.1);
+    expect(minX, diagnostics).toBeGreaterThanOrEqual(0.2);
+    expect(maxX, diagnostics).toBeLessThanOrEqual(25.8);
+  });
+
+  it("기본 6개 구슬은 정체 구간을 지나 첫 결과까지 진행한다", () => {
+    const sixEntries = Array.from({ length: 6 }, (_, index) => ({
+      id: `default-${index}`,
+      name: `default-${index}`,
+      label: `${index}`,
+      weight: 1,
+      duplicateIndex: 0,
+    }));
+    const world = createRouletteWorld(sixEntries, { width: 1280, height: 720 });
+    let reachedGoal = false;
+    let maxY = 0;
+
+    for (let step = 0; step < 1700; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+      if (step % 36 === 0) {
+        shakeSlowMarbles(world);
+      }
+
+      for (const marble of world.marbles) {
+        maxY = Math.max(maxY, marble.body.position.y);
+        if (marble.body.position.y > world.stage.goalY) {
+          reachedGoal = true;
+        }
+      }
+
+      if (reachedGoal) {
+        break;
+      }
+    }
+
+    expect(reachedGoal, JSON.stringify({ maxY })).toBe(true);
+  });
+
+  it("빠른 구슬도 첫 경사 벽을 한 프레임에 뚫지 않는다", () => {
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 });
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 10.1, y: 18 });
+    Body.setVelocity(marble.body, { x: -7, y: 7 });
+
+    for (let step = 0; step < 80; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+    }
+
+    expect(marble.body.position.x).toBeGreaterThan(2);
+    expect(marble.body.position.x).toBeLessThan(24);
+    expect(Math.hypot(marble.body.velocity.x, marble.body.velocity.y)).toBeLessThan(12.1);
   });
 });

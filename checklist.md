@@ -75,3 +75,12 @@
 - [x] 레일 두께, stage restitution, stuck assist 힘을 낮춰 충돌 반발을 안정화했다.
 - [x] 보이지 않는 좌우 containment wall을 추가해 구슬이 stage 밖으로 새지 않게 했다.
 - [x] `npm test`, `npm run build`, 로컬 브라우저 검증을 통과시켰다.
+
+## Physics Stability Rework
+
+- [x] 원본 Box2D edge fixture 방식과 현재 Matter.js segment 방식 차이를 확인한다.
+- [x] 벽 통과와 순간 발사를 재현하는 회귀 테스트를 추가한다.
+- [x] polyline 충돌을 틈 없는 circle-vs-segment 해석으로 교체한다.
+- [x] kinematic wheel은 직접 충돌에서 제외하고 시각 회전으로만 유지한다.
+- [x] `npm test`, `npm run build`, 브라우저 검증을 통과시킨다.
+- [ ] Pages 배포 검증을 통과시킨다.

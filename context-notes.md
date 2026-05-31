@@ -67,3 +67,15 @@
 - stage entity restitution은 `0.12`로 상한을 두고, stuck assist 힘은 낮췄다. 이 조정만으로 속도 폭발은 줄었지만 polyline 벽 틈으로 stage 밖 이동 가능성이 남았다.
 - 레일 충돌 두께를 키우고 보이지 않는 좌우 containment wall을 추가했다. 최종 회귀 테스트는 goal 전 속도와 x 범위가 안정적으로 유지되는지 확인한다.
 - 로컬 브라우저 QA에서 시작 뒤 2.2초까지 `0 / 6`, 이후 정상적으로 `1 / 6` 결과가 나오고 console warning/error 0건을 확인했다.
+
+## 2026-05-31 Physics Stability Rework
+
+- 사용자가 여전히 벽을 통과하거나 벽에 붙었다가 날아가는 증상이 있다고 보고했다.
+- 이전 수정은 Matter.js rectangle segment를 튜닝한 것이어서 원본 Box2D edge fixture의 연속 충돌 특성을 복원하지 못했다.
+- 원본 `physics-box2d.ts`는 polyline을 한 body 안의 `b2EdgeShape.SetTwoSided` fixture 묶음으로 만든다. 현재 구현은 각 선분을 별도 얇은 rectangle body로 만들어 관절 틈, 모서리 침투, 순간 반발이 생길 수 있다.
+- 이번 방향은 Matter.js stage body 충돌에 의존하지 않고, 구슬 원과 원본 polyline segment의 직접 충돌을 작은 substep에서 해석하는 것이다. 렌더링과 React 상태 구조는 유지한다.
+- 직접 충돌 해석은 fixed substep, 속도 상한, circle-vs-segment 보정, static box/circle 보정으로 구성했다. kinematic wheel은 마지막 게이트에서 구슬을 되미는 문제가 있어 실제 충돌에서 제외하고 화면 회전만 남겼다.
+- 새 회귀 테스트는 여러 구슬 장시간 실행, 빠른 구슬의 첫 경사 벽 관통 방지, 속도 상한을 확인한다. `npm test`와 `npm run build`는 통과했다.
+- 브라우저 QA에서 기본 6개가 20초 이상 `0 / 6`에 머무르는 문제가 남아 있었다. 원인은 내부 polyline joint endpoint가 둥근 cap처럼 작동해 마지막 funnel과 중간 꺾임에서 구슬을 막는 것이었다.
+- 내부 joint endpoint cap 충돌을 제외하고 adjacent segment만 처리하게 바꿨다. stuck assist 주기는 600ms로 낮췄고, 직접 충돌 해석의 중력과 속도 상한을 조정해 30초 안에 첫 결과가 나오게 했다.
+- 로컬 QA는 desktop 1280x720과 mobile 390x844에서 각각 `1 / 6`까지 도달했고 console warning/error 0건이었다.

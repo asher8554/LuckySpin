@@ -54,6 +54,14 @@ interface SceneState {
 const marbleRadius = 0.25;
 const railThickness = 0.22;
 const minimapScale = 4;
+const gravity = 16;
+const fixedStepMs = 1000 / 240;
+const maxStepMs = 50;
+const collisionIterations = 3;
+const maxMarbleSpeed = 12;
+const wallRestitution = 0.03;
+const bouncePinRestitution = 0.45;
+const airDamping = 0.12;
 
 const themeColors = {
   dark: {
@@ -150,19 +158,49 @@ function createContainmentBodies(stage: StageDef) {
 
 export function advanceRouletteWorld(world: RouletteWorld, deltaMs: number) {
   world.elapsedMs += deltaMs;
+  let remainingMs = Math.min(deltaMs, maxStepMs);
 
+  while (remainingMs > 0) {
+    const stepMs = Math.min(remainingMs, fixedStepMs);
+    stepRouletteWorld(world, stepMs / 1000);
+    remainingMs -= stepMs;
+  }
+}
+
+function stepRouletteWorld(world: RouletteWorld, deltaSeconds: number) {
   for (const entity of world.entities) {
-    if (entity.entity.type !== "kinematic") {
-      continue;
+    if (entity.entity.type === "kinematic") {
+      entity.angle += entity.entity.props.angularVelocity * deltaSeconds;
     }
-
-    entity.angle += entity.entity.props.angularVelocity * (deltaMs / 1000);
     for (const body of entity.bodies) {
       Body.setAngularVelocity(body, 0);
     }
   }
 
-  Engine.update(world.engine, deltaMs);
+  for (const marble of world.marbles) {
+    const position = { x: marble.body.position.x, y: marble.body.position.y };
+    const velocity = { x: marble.body.velocity.x, y: marble.body.velocity.y };
+    velocity.y += gravity * deltaSeconds;
+
+    const damping = Math.max(0, 1 - airDamping * deltaSeconds);
+    velocity.x *= damping;
+    velocity.y *= damping;
+    clampVector(velocity, maxMarbleSpeed);
+
+    position.x += velocity.x * deltaSeconds;
+    position.y += velocity.y * deltaSeconds;
+
+    for (let iteration = 0; iteration < collisionIterations; iteration += 1) {
+      for (const entity of world.entities) {
+        resolveEntityCollision(position, velocity, entity);
+      }
+      resolveWorldBounds(position, velocity);
+    }
+
+    clampVector(velocity, maxMarbleSpeed);
+    Body.setPosition(marble.body, position);
+    Body.setVelocity(marble.body, velocity);
+  }
 }
 
 export function removeMarbleFromWorld(world: RouletteWorld, marble: RouletteMarble) {
@@ -177,15 +215,268 @@ export function shakeSlowMarbles(world: RouletteWorld, finishedIds = new Set<str
     }
 
     const speed = Math.hypot(marble.body.velocity.x, marble.body.velocity.y);
-    if (speed > 0.08) {
+    const nearGoal = marble.body.position.y > world.stage.zoomY - zoomThreshold;
+    if (speed > (nearGoal ? 2.4 : 2)) {
       continue;
     }
 
-    Body.applyForce(marble.body, marble.body.position, {
-      x: (Math.sin(world.elapsedMs / 300 + marble.order) * 0.00018) / Math.max(marble.entry.weight, 1),
-      y: 0.00035,
-    });
+    const targetX = nearGoal ? 15.55 : marble.body.position.x;
+    const xNudge =
+      Math.sin(world.elapsedMs / 300 + marble.order) * 0.5 +
+      (targetX - marble.body.position.x) * (nearGoal ? 1.2 : 0.35);
+    const nextVelocity = {
+      x: marble.body.velocity.x + xNudge / Math.max(marble.entry.weight, 1),
+      y: marble.body.velocity.y + (nearGoal ? 4 : 3),
+    };
+    clampVector(nextVelocity, maxMarbleSpeed * 0.45);
+    Body.setVelocity(marble.body, nextVelocity);
   }
+}
+
+function resolveEntityCollision(
+  position: { x: number; y: number },
+  velocity: { x: number; y: number },
+  state: StageBodyState,
+) {
+  const entity = state.entity;
+  if (entity.type === "kinematic") {
+    return;
+  }
+
+  switch (entity.shape.type) {
+    case "polyline":
+      for (let index = 0; index < entity.shape.points.length - 1; index += 1) {
+        const from = entity.shape.points[index];
+        const to = entity.shape.points[index + 1];
+        resolveSegmentCollision(
+          position,
+          velocity,
+          { x: from[0] + entity.position.x, y: from[1] + entity.position.y },
+          { x: to[0] + entity.position.x, y: to[1] + entity.position.y },
+          wallRestitution,
+          index === 0,
+          index === entity.shape.points.length - 2,
+        );
+      }
+      break;
+    case "box":
+      resolveBoxCollision(position, velocity, entity, entity.shape.rotation);
+      break;
+    case "circle":
+      resolveCircleCollision(position, velocity, entity.position, entity.shape.radius, getEntityRestitution(entity));
+      break;
+  }
+}
+
+function resolveSegmentCollision(
+  position: { x: number; y: number },
+  velocity: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  restitution: number,
+  includeStartCap: boolean,
+  includeEndCap: boolean,
+) {
+  const closest = closestPointOnSegment(position, from, to);
+  if ((closest.t <= 0 && !includeStartCap) || (closest.t >= 1 && !includeEndCap)) {
+    return;
+  }
+
+  let normal = { x: position.x - closest.x, y: position.y - closest.y };
+  let distance = Math.hypot(normal.x, normal.y);
+
+  if (distance >= marbleRadius) {
+    return;
+  }
+
+  if (distance < 0.000001) {
+    normal = segmentFallbackNormal(from, to, velocity);
+    distance = 0;
+  } else {
+    normal.x /= distance;
+    normal.y /= distance;
+  }
+
+  position.x += normal.x * (marbleRadius - distance);
+  position.y += normal.y * (marbleRadius - distance);
+  applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.08);
+}
+
+function resolveBoxCollision(
+  position: { x: number; y: number },
+  velocity: { x: number; y: number },
+  entity: StageEntity,
+  angle: number,
+) {
+  if (entity.shape.type !== "box") {
+    return;
+  }
+
+  const cos = Math.cos(-angle);
+  const sin = Math.sin(-angle);
+  const local = rotatePoint(position.x - entity.position.x, position.y - entity.position.y, cos, sin);
+  const closest = {
+    x: clamp(local.x, -entity.shape.width, entity.shape.width),
+    y: clamp(local.y, -entity.shape.height, entity.shape.height),
+  };
+  let delta = { x: local.x - closest.x, y: local.y - closest.y };
+  let distance = Math.hypot(delta.x, delta.y);
+  let penetration = marbleRadius - distance;
+
+  if (distance >= marbleRadius) {
+    return;
+  }
+
+  if (distance < 0.000001) {
+    const xOverlap = entity.shape.width - Math.abs(local.x);
+    const yOverlap = entity.shape.height - Math.abs(local.y);
+    if (xOverlap < yOverlap) {
+      delta = { x: local.x < 0 ? -1 : 1, y: 0 };
+      penetration = marbleRadius + xOverlap;
+    } else {
+      delta = { x: 0, y: local.y < 0 ? -1 : 1 };
+      penetration = marbleRadius + yOverlap;
+    }
+    distance = 1;
+  }
+
+  const worldNormal = rotatePoint(delta.x / distance, delta.y / distance, Math.cos(angle), Math.sin(angle));
+  position.x += worldNormal.x * penetration;
+  position.y += worldNormal.y * penetration;
+
+  applyCollisionVelocity(velocity, worldNormal, { x: 0, y: 0 }, getEntityRestitution(entity), 0.1);
+}
+
+function resolveCircleCollision(
+  position: { x: number; y: number },
+  velocity: { x: number; y: number },
+  center: { x: number; y: number },
+  radius: number,
+  restitution: number,
+) {
+  let normal = { x: position.x - center.x, y: position.y - center.y };
+  let distance = Math.hypot(normal.x, normal.y);
+  const minDistance = marbleRadius + radius;
+
+  if (distance >= minDistance) {
+    return;
+  }
+
+  if (distance < 0.000001) {
+    normal = { x: 0, y: -1 };
+    distance = 0;
+  } else {
+    normal.x /= distance;
+    normal.y /= distance;
+  }
+
+  position.x += normal.x * (minDistance - distance);
+  position.y += normal.y * (minDistance - distance);
+  applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.1);
+}
+
+function resolveWorldBounds(position: { x: number; y: number }, velocity: { x: number; y: number }) {
+  const minX = marbleRadius;
+  const maxX = 26 - marbleRadius;
+
+  if (position.x < minX) {
+    position.x = minX;
+    if (velocity.x < 0) {
+      velocity.x = -velocity.x * wallRestitution;
+    }
+  }
+
+  if (position.x > maxX) {
+    position.x = maxX;
+    if (velocity.x > 0) {
+      velocity.x = -velocity.x * wallRestitution;
+    }
+  }
+}
+
+function applyCollisionVelocity(
+  velocity: { x: number; y: number },
+  normal: { x: number; y: number },
+  surfaceVelocity: { x: number; y: number },
+  restitution: number,
+  friction: number,
+) {
+  const relative = {
+    x: velocity.x - surfaceVelocity.x,
+    y: velocity.y - surfaceVelocity.y,
+  };
+  const normalSpeed = dot(relative, normal);
+
+  if (normalSpeed < 0) {
+    velocity.x -= (1 + restitution) * normalSpeed * normal.x;
+    velocity.y -= (1 + restitution) * normalSpeed * normal.y;
+
+    const tangent = {
+      x: relative.x - normalSpeed * normal.x,
+      y: relative.y - normalSpeed * normal.y,
+    };
+    velocity.x -= tangent.x * friction;
+    velocity.y -= tangent.y * friction;
+  }
+
+  clampVector(velocity, maxMarbleSpeed);
+}
+
+function getEntityRestitution(entity: StageEntity) {
+  return entity.props.restitution > 0 ? bouncePinRestitution : wallRestitution;
+}
+
+function closestPointOnSegment(
+  point: { x: number; y: number },
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const lengthSq = dx * dx + dy * dy;
+  const t = lengthSq === 0 ? 0 : clamp(((point.x - from.x) * dx + (point.y - from.y) * dy) / lengthSq, 0, 1);
+  return {
+    x: from.x + dx * t,
+    y: from.y + dy * t,
+    t,
+  };
+}
+
+function segmentFallbackNormal(
+  from: { x: number; y: number },
+  to: { x: number; y: number },
+  velocity: { x: number; y: number },
+) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const normal = { x: -dy / length, y: dx / length };
+  return dot(velocity, normal) < 0 ? normal : { x: -normal.x, y: -normal.y };
+}
+
+function rotatePoint(x: number, y: number, cos: number, sin: number) {
+  return {
+    x: x * cos - y * sin,
+    y: x * sin + y * cos,
+  };
+}
+
+function clampVector(vector: { x: number; y: number }, maxLength: number) {
+  const length = Math.hypot(vector.x, vector.y);
+  if (length <= maxLength || length === 0) {
+    return;
+  }
+  const scale = maxLength / length;
+  vector.x *= scale;
+  vector.y *= scale;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, value));
+}
+
+function dot(left: { x: number; y: number }, right: { x: number; y: number }) {
+  return left.x * right.x + left.y * right.y;
 }
 
 export function getLiveMarbleOrder(world: RouletteWorld, finishedIds = new Set<string>()) {

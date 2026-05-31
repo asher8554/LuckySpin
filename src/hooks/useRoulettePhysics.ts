@@ -142,7 +142,7 @@ export function useRoulettePhysics({
       }
 
       shakeSlowMarbles(worldRef.current, finishedIdsRef.current);
-    }, 1200);
+    }, 600);
 
     const tick = (time: number) => {
       const previousTime = lastFrameTimeRef.current ?? time;
