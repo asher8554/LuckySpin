@@ -52,7 +52,7 @@ interface SceneState {
 }
 
 const marbleRadius = 0.25;
-const railThickness = 0.08;
+const railThickness = 0.22;
 const minimapScale = 4;
 
 const themeColors = {
@@ -100,6 +100,7 @@ export function getRouletteSpawnPosition(order: number, total: number) {
 export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize, stage: StageDef = wheelOfFortuneStage) {
   const engine = Engine.create({ gravity: { x: 0, y: 1, scale: 0.000006 } });
   const entities = stage.entities.map(createStageBodyState);
+  const containmentBodies = createContainmentBodies(stage);
   const marbles = entries.map((entry, order) => {
     const spawn = getRouletteSpawnPosition(order, entries.length);
     const body = Bodies.circle(spawn.x, spawn.y, marbleRadius, {
@@ -118,7 +119,11 @@ export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize, sta
     };
   });
 
-  Composite.add(engine.world, [...entities.flatMap((entity) => entity.bodies), ...marbles.map((marble) => marble.body)]);
+  Composite.add(engine.world, [
+    ...entities.flatMap((entity) => entity.bodies),
+    ...containmentBodies,
+    ...marbles.map((marble) => marble.body),
+  ]);
 
   return {
     engine,
@@ -128,6 +133,19 @@ export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize, sta
     camera: createPreviewCamera(size),
     elapsedMs: 0,
   };
+}
+
+function createContainmentBodies(stage: StageDef) {
+  const top = -320;
+  const bottom = stage.goalY + 20;
+  const height = bottom - top;
+  const centerY = top + height / 2;
+  const options = { isStatic: true, friction: 0.03, restitution: 0, render: { visible: false } };
+
+  return [
+    Bodies.rectangle(-0.7, centerY, 1, height, options),
+    Bodies.rectangle(26.7, centerY, 1, height, options),
+  ];
 }
 
 export function advanceRouletteWorld(world: RouletteWorld, deltaMs: number) {
@@ -140,8 +158,7 @@ export function advanceRouletteWorld(world: RouletteWorld, deltaMs: number) {
 
     entity.angle += entity.entity.props.angularVelocity * (deltaMs / 1000);
     for (const body of entity.bodies) {
-      Body.setAngle(body, entity.angle);
-      Body.setAngularVelocity(body, entity.entity.props.angularVelocity);
+      Body.setAngularVelocity(body, 0);
     }
   }
 
@@ -165,8 +182,8 @@ export function shakeSlowMarbles(world: RouletteWorld, finishedIds = new Set<str
     }
 
     Body.applyForce(marble.body, marble.body.position, {
-      x: (Math.sin(world.elapsedMs / 300 + marble.order) * 0.0015) / Math.max(marble.entry.weight, 1),
-      y: 0.0025,
+      x: (Math.sin(world.elapsedMs / 300 + marble.order) * 0.00018) / Math.max(marble.entry.weight, 1),
+      y: 0.00035,
     });
   }
 }
@@ -250,7 +267,7 @@ function createMatterBodies(entity: StageEntity) {
   const options = {
     isStatic: true,
     friction: 0.03,
-    restitution: entity.props.restitution,
+    restitution: Math.min(entity.props.restitution, 0.12),
     render: { visible: false },
   };
 

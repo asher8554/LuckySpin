@@ -40,7 +40,7 @@ describe("stage based physics", () => {
     { id: "b-1-0", name: "b", label: "b", weight: 1, duplicateIndex: 0 },
   ];
 
-  it("kinematic 바퀴는 스텝마다 각속도와 각도가 갱신된다", () => {
+  it("kinematic 바퀴는 화면 각도만 갱신하고 충돌 각속도는 주입하지 않는다", () => {
     const world = createRouletteWorld(entries, { width: 1280, height: 720 });
     const wheel = world.entities.find((entity) => entity.entity.type === "kinematic");
 
@@ -48,7 +48,7 @@ describe("stage based physics", () => {
     advanceRouletteWorld(world, 16.6);
 
     expect(wheel?.angle).not.toBe(0);
-    expect(wheel?.bodies[0].angularVelocity).not.toBe(0);
+    expect(wheel?.bodies[0].angularVelocity).toBe(0);
   });
 
   it("완료된 구슬은 world.marbles와 live order에서 제거된다", () => {
@@ -91,5 +91,46 @@ describe("stage based physics", () => {
     }
 
     expect(reachedGoal).toBe(true);
+  });
+
+  it("구슬은 회전 바퀴 충돌 뒤 맵 밖으로 폭발하지 않는다", () => {
+    const world = createRouletteWorld(entries, { width: 1280, height: 720 });
+    let maxSpeed = 0;
+    let maxX = Number.NEGATIVE_INFINITY;
+    let minX = Number.POSITIVE_INFINITY;
+    let maxXBeforeGoal = Number.NEGATIVE_INFINITY;
+    let minXBeforeGoal = Number.POSITIVE_INFINITY;
+
+    for (let step = 0; step < 2400; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+      if (step % 72 === 0) {
+        shakeSlowMarbles(world);
+      }
+
+      for (const marble of world.marbles) {
+        const speed = Math.hypot(marble.body.velocity.x, marble.body.velocity.y);
+        maxSpeed = Math.max(maxSpeed, speed);
+        maxX = Math.max(maxX, marble.body.position.x);
+        minX = Math.min(minX, marble.body.position.x);
+        if (marble.body.position.y <= world.stage.goalY) {
+          maxXBeforeGoal = Math.max(maxXBeforeGoal, marble.body.position.x);
+          minXBeforeGoal = Math.min(minXBeforeGoal, marble.body.position.x);
+        }
+      }
+
+      if (world.marbles.some((marble) => marble.body.position.y > world.stage.goalY)) {
+        break;
+      }
+    }
+
+    expect({ maxSpeed, minX, maxX }).toEqual({
+      maxSpeed: expect.any(Number),
+      minX: expect.any(Number),
+      maxX: expect.any(Number),
+    });
+    const diagnostics = JSON.stringify({ maxSpeed, minX, maxX, minXBeforeGoal, maxXBeforeGoal });
+    expect(maxSpeed, diagnostics).toBeLessThan(1.2);
+    expect(minXBeforeGoal, diagnostics).toBeGreaterThan(-0.1);
+    expect(maxXBeforeGoal, diagnostics).toBeLessThan(26.1);
   });
 });

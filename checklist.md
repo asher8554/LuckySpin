@@ -67,3 +67,11 @@
 - [x] Matter.js 중력 스케일이 원본 Box2D 좌표계에 비해 너무 커서 레일을 통과하는 원인을 확인했다.
 - [x] 중력 스케일을 낮추고 stuck assist 조건을 포함한 진행 테스트를 추가했다.
 - [x] `npm test`, `npm run build`, 브라우저 검증을 통과시켰다.
+
+## Physics Bounce Fix
+
+- [x] 과도한 반발과 맵 밖 이탈 증상을 테스트로 재현했다.
+- [x] kinematic 바퀴의 시각 회전이 Matter.js 각속도 충돌로 주입되는 경로를 제거했다.
+- [x] 레일 두께, stage restitution, stuck assist 힘을 낮춰 충돌 반발을 안정화했다.
+- [x] 보이지 않는 좌우 containment wall을 추가해 구슬이 stage 밖으로 새지 않게 했다.
+- [x] `npm test`, `npm run build`, 로컬 브라우저 검증을 통과시켰다.
