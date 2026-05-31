@@ -27,3 +27,9 @@
 - 상점, 녹화, 스킬은 첫 버전에서 비활성 안내 토스트를 띄운다. 수동 DOM 삽입은 React 렌더링과 충돌하므로 `ToastHost` 상태 경로만 사용한다.
 - 모바일 390x844 검증에서 저작권 문구가 하단에서 줄바꿈되어 걸리는 문제가 있어 모바일에서는 숨겼다.
 - 최종 확인으로 `npm test`, `npm run build`, Playwright CLI 클릭 검증을 수행했다. 확인한 흐름은 시작 후 `6 / 6` 결과 집계, 상점/녹화 토스트, 미지원 맵 토스트, 공지 모달, 데스크톱/모바일 스크린샷, 콘솔 warning/error 0건이다.
+
+## 2026-05-31
+
+- 사용자가 GitHub Pages로 열어보고 싶다고 요청했다. Vite 앱은 이미 `base: "/LuckySpin/"`로 설정되어 있어 프로젝트 Pages URL과 맞는다.
+- GitHub Pages는 빌드 단계가 필요한 Vite 앱이므로 GitHub Actions에서 `npm ci`, `npm run build`, Pages artifact 업로드, Pages 배포를 수행하는 방식으로 설정한다.
+- README에는 Pages URL, 로컬 실행 방법, 입력 문법, 구현된 기능과 첫 버전 미지원 기능을 기록한다.

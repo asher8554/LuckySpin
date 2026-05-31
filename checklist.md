@@ -29,3 +29,11 @@
 - [x] 브라우저 검증 중 발견한 시작 상태, 토스트, 모바일 겹침 문제를 수정한다.
 - [x] `npm test`와 `npm run build`를 통과시킨다.
 - [x] Playwright CLI로 데스크톱과 모바일 화면을 검증한다.
+
+## GitHub Pages
+
+- [x] GitHub Pages 배포 방식을 확인한다.
+- [x] Pages 배포용 GitHub Actions 워크플로를 추가한다.
+- [x] 프로젝트 README를 작성한다.
+- [x] 테스트와 빌드를 다시 실행한다.
+- [x] 변경 사항을 커밋한다.
