@@ -1,6 +1,6 @@
 # LuckySpin
 
-LuckySpin은 `https://lazygyu.github.io/roulette/`의 룰렛 경험을 새 코드로 재구현한 React 기반 추첨 도구입니다. 과일 구슬이 물리 트랙을 따라 이동하고, 도착 순서에 따라 순위가 기록됩니다.
+LuckySpin은 `https://lazygyu.github.io/roulette/`의 룰렛 경험을 React 기반으로 재구현한 추첨 도구입니다. 원본 `lazygyu/roulette`의 첫 맵 `Wheel of fortune` 데이터를 기준으로 트랙, 미니맵, 카메라 추적, goalY 결과 판정을 맞췄습니다.
 
 ## GitHub Pages
 
@@ -15,10 +15,11 @@ GitHub 저장소 설정에서 Pages의 Build and deployment Source가 `GitHub Ac
 ## 주요 기능
 
 - 이름 입력과 반복 수 입력을 지원합니다. 예를 들어 `수박*2,키위*2,귤*2`처럼 입력할 수 있습니다.
-- `matter-js` 물리 엔진으로 과일 구슬이 트랙 위를 이동합니다.
-- 도착 순서와 선택한 당첨 순위를 오른쪽 순위판에 표시합니다.
-- 섞기, 시작, 다크 모드, 공지 모달을 제공합니다.
-- 상점, 녹화, 스킬, 추가 맵은 첫 버전에서 안내 토스트만 표시합니다.
+- 원본 `StageDef.entities`를 옮긴 트랙에서 `matter-js` 구슬이 이동합니다.
+- `goalY`를 넘은 순서와 선택한 당첨 순위를 오른쪽 순위판에 표시합니다.
+- 원본처럼 왼쪽 미니맵, 하단 설정 패널, 진행 중 패널 숨김, winner 배너를 제공합니다.
+- 섞기, 시작, 다크 모드, 첫번째/마지막/직접 당첨 순위를 지원합니다.
+- 추가 맵, 상점, 녹화, 스킬 효과는 아직 연결하지 않았습니다.
 
 ## 로컬 실행
 
@@ -45,3 +46,9 @@ npm run build
 - TypeScript
 - matter-js
 - Vitest
+
+## 원본 기준
+
+- 원본 저장소는 `https://github.com/lazygyu/roulette`입니다.
+- 원본은 MIT 라이선스입니다.
+- 현재 구현은 전체 Box2D 포팅이 아니라 React/Vite 구조 안에서 첫 맵의 데이터 모델과 동작 방식을 재현한 버전입니다.

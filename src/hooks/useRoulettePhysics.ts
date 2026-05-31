@@ -1,36 +1,83 @@
-// 캔버스 크기와 Matter.js 실행 생명주기를 React에서 관리한다.
-import { Engine, Runner } from "matter-js";
+// 캔버스 크기와 원본형 룰렛 물리 실행 생명주기를 React에서 관리한다.
+import { Engine } from "matter-js";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { MarbleEntry, RouletteResult, RouletteStatus, ThemeMode } from "../types";
+import type { MapId, MarbleEntry, RouletteResult, RouletteStatus, ThemeMode } from "../types";
 import {
+  advanceRouletteWorld,
   createRouletteWorld,
   drawRouletteScene,
-  subscribeToFinish,
+  getLiveMarbleOrder,
+  getStageForMap,
+  removeMarbleFromWorld,
+  shakeSlowMarbles,
+  updateRouletteCamera,
   type RouletteWorld,
   type WorldSize,
 } from "../lib/physics";
 
 interface UseRoulettePhysicsOptions {
   entries: MarbleEntry[];
+  results: RouletteResult[];
   status: RouletteStatus;
   theme: ThemeMode;
+  mapId: MapId;
+  winnerRank: number;
+  winner?: RouletteResult;
   onResult: (result: RouletteResult) => void;
   onComplete: () => void;
+  onLiveRank: (entries: MarbleEntry[]) => void;
 }
 
 function getViewportSize(): WorldSize {
   return { width: window.innerWidth, height: window.innerHeight };
 }
 
-export function useRoulettePhysics({ entries, status, theme, onResult, onComplete }: UseRoulettePhysicsOptions) {
+export function useRoulettePhysics({
+  entries,
+  results,
+  status,
+  theme,
+  mapId,
+  winnerRank,
+  winner,
+  onResult,
+  onComplete,
+  onLiveRank,
+}: UseRoulettePhysicsOptions) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const worldRef = useRef<RouletteWorld | null>(null);
   const frameRef = useRef<number | null>(null);
-  const fallbackRef = useRef<number | null>(null);
-  const cleanupFinishRef = useRef<(() => void) | null>(null);
-  const [size, setSize] = useState<WorldSize>(getViewportSize);
-  const resultCountRef = useRef(0);
+  const stuckAssistRef = useRef<number | null>(null);
   const finishedIdsRef = useRef<Set<string>>(new Set());
+  const resultCountRef = useRef(0);
+  const completedRef = useRef(false);
+  const lastFrameTimeRef = useRef<number | null>(null);
+  const lastLiveRankRef = useRef("");
+  const lastLiveRankEmitRef = useRef(0);
+  const resultsRef = useRef(results);
+  const winnerRef = useRef(winner);
+  const [size, setSize] = useState<WorldSize>(getViewportSize);
+
+  const drawCurrentScene = useCallback(() => {
+    const canvas = canvasRef.current;
+    const context = canvas?.getContext("2d");
+    if (!canvas || !context) {
+      return;
+    }
+
+    const ratio = window.devicePixelRatio || 1;
+    canvas.width = Math.floor(size.width * ratio);
+    canvas.height = Math.floor(size.height * ratio);
+    canvas.style.width = `${size.width}px`;
+    canvas.style.height = `${size.height}px`;
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    drawRouletteScene(context, worldRef.current, size, theme, {
+      entries,
+      results,
+      selectedRank: winnerRank,
+      winner,
+    });
+  }, [entries, results, size, theme, winner, winnerRank]);
 
   const cleanupWorld = useCallback(() => {
     if (frameRef.current !== null) {
@@ -38,19 +85,17 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
       frameRef.current = null;
     }
 
-    if (fallbackRef.current !== null) {
-      window.clearTimeout(fallbackRef.current);
-      fallbackRef.current = null;
+    if (stuckAssistRef.current !== null) {
+      window.clearInterval(stuckAssistRef.current);
+      stuckAssistRef.current = null;
     }
 
-    cleanupFinishRef.current?.();
-    cleanupFinishRef.current = null;
-
     if (worldRef.current) {
-      Runner.stop(worldRef.current.runner);
       Engine.clear(worldRef.current.engine);
       worldRef.current = null;
     }
+
+    lastFrameTimeRef.current = null;
   }, []);
 
   useEffect(() => {
@@ -60,83 +105,137 @@ export function useRoulettePhysics({ entries, status, theme, onResult, onComplet
   }, []);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) {
-      return;
-    }
-
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(size.width * ratio);
-    canvas.height = Math.floor(size.height * ratio);
-    canvas.style.width = `${size.width}px`;
-    canvas.style.height = `${size.height}px`;
-    const context = canvas.getContext("2d");
-    if (!context) {
-      return;
-    }
-
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
-    drawRouletteScene(context, worldRef.current, size, theme, entries);
-  }, [entries, size, theme]);
+    resultsRef.current = results;
+  }, [results]);
 
   useEffect(() => {
-    const canvas = canvasRef.current;
-    const context = canvas?.getContext("2d");
-    if (!canvas || !context || status !== "running" || entries.length === 0) {
-      if (status !== "running") {
+    winnerRef.current = winner;
+  }, [winner]);
+
+  useEffect(() => {
+    drawCurrentScene();
+  }, [drawCurrentScene]);
+
+  useEffect(() => {
+    if (status !== "running" || entries.length === 0) {
+      if (status === "idle") {
         cleanupWorld();
       }
       return;
     }
 
     cleanupWorld();
-    resultCountRef.current = 0;
     finishedIdsRef.current = new Set();
-    const ratio = window.devicePixelRatio || 1;
-    canvas.width = Math.floor(size.width * ratio);
-    canvas.height = Math.floor(size.height * ratio);
-    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    resultCountRef.current = 0;
+    completedRef.current = false;
+    lastLiveRankRef.current = "";
+    lastLiveRankEmitRef.current = 0;
 
-    const world = createRouletteWorld(entries, size);
+    const stage = getStageForMap(mapId);
+    const world = createRouletteWorld(entries, size, stage);
     worldRef.current = world;
-    cleanupFinishRef.current = subscribeToFinish(world, (result) => {
-      finishedIdsRef.current.add(result.id);
-      resultCountRef.current += 1;
-      onResult(result);
-      if (resultCountRef.current >= entries.length) {
-        onComplete();
-      }
-    });
+    onLiveRank(entries);
 
-    fallbackRef.current = window.setTimeout(() => {
-      const currentWorld = worldRef.current;
-      if (!currentWorld || resultCountRef.current >= entries.length) {
+    stuckAssistRef.current = window.setInterval(() => {
+      if (!worldRef.current || completedRef.current) {
         return;
       }
 
-      const pending = currentWorld.marbles
-        .filter((marble) => !finishedIdsRef.current.has(marble.entry.id))
-        .sort((left, right) => right.body.position.y - left.body.position.y || right.body.position.x - left.body.position.x);
+      shakeSlowMarbles(worldRef.current, finishedIdsRef.current);
+    }, 1200);
 
-      for (const marble of pending) {
-        finishedIdsRef.current.add(marble.entry.id);
-        resultCountRef.current += 1;
-        onResult({ ...marble.entry, rank: resultCountRef.current });
+    const tick = (time: number) => {
+      const previousTime = lastFrameTimeRef.current ?? time;
+      const deltaMs = Math.min(16.6, Math.max(8, time - previousTime));
+      lastFrameTimeRef.current = time;
+
+      if (!completedRef.current) {
+        advanceRouletteWorld(world, deltaMs);
+        updateRouletteCamera(world, size, finishedIdsRef.current, winnerRank, resultCountRef.current);
+        collectResults(world);
+        emitLiveRank(world, time);
       }
 
-      onComplete();
-    }, 9000);
+      drawFrame();
 
-    Runner.run(world.runner, world.engine);
-
-    const tick = () => {
-      drawRouletteScene(context, worldRef.current, size, theme, entries);
-      frameRef.current = requestAnimationFrame(tick);
+      if (!completedRef.current) {
+        frameRef.current = requestAnimationFrame(tick);
+      }
     };
-    tick();
+
+    const collectResults = (currentWorld: RouletteWorld) => {
+      const pending = getLiveMarbleOrder(currentWorld, finishedIdsRef.current);
+      let changed = false;
+
+      for (const marble of pending) {
+        if (marble.body.position.y <= currentWorld.stage.goalY || finishedIdsRef.current.has(marble.entry.id)) {
+          continue;
+        }
+
+        finishedIdsRef.current.add(marble.entry.id);
+        resultCountRef.current += 1;
+        changed = true;
+        removeMarbleFromWorld(currentWorld, marble);
+        onResult({ ...marble.entry, rank: resultCountRef.current });
+
+        if (resultCountRef.current >= winnerRank) {
+          completedRef.current = true;
+          onComplete();
+          break;
+        }
+      }
+
+      if (changed) {
+        onLiveRank(getLiveMarbleOrder(currentWorld, finishedIdsRef.current).map((marble) => marble.entry));
+      }
+    };
+
+    const emitLiveRank = (currentWorld: RouletteWorld, time: number) => {
+      if (time - lastLiveRankEmitRef.current < 120) {
+        return;
+      }
+
+      const liveEntries = getLiveMarbleOrder(currentWorld, finishedIdsRef.current).map((marble) => marble.entry);
+      const signature = liveEntries.map((entry) => entry.id).join("|");
+      if (signature !== lastLiveRankRef.current) {
+        lastLiveRankRef.current = signature;
+        onLiveRank(liveEntries);
+      }
+      lastLiveRankEmitRef.current = time;
+    };
+
+    const drawFrame = () => {
+      const canvas = canvasRef.current;
+      const context = canvas?.getContext("2d");
+      if (!canvas || !context) {
+        return;
+      }
+
+      const ratio = window.devicePixelRatio || 1;
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+      drawRouletteScene(context, world, size, theme, {
+        entries,
+        results: resultsRef.current,
+        selectedRank: winnerRank,
+        winner: winnerRef.current,
+      });
+    };
+
+    frameRef.current = requestAnimationFrame(tick);
 
     return cleanupWorld;
-  }, [cleanupWorld, entries, onComplete, onResult, size, status, theme]);
+  }, [
+    cleanupWorld,
+    entries,
+    mapId,
+    onComplete,
+    onLiveRank,
+    onResult,
+    size,
+    status,
+    theme,
+    winnerRank,
+  ]);
 
   useEffect(() => cleanupWorld, [cleanupWorld]);
 

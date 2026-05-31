@@ -4,7 +4,6 @@ import { ControlPanel } from "./components/ControlPanel";
 import { RankingBoard } from "./components/RankingBoard";
 import { RouletteCanvas } from "./components/RouletteCanvas";
 import { ToastHost } from "./components/ToastHost";
-import { WinnerOverlay } from "./components/WinnerOverlay";
 import { clampWinnerRank, expandEntries, parseEntries, ROULETTE_MAPS, shuffleEntries } from "./lib/roulette";
 import { loadNames, loadTheme, saveNames, saveTheme } from "./lib/storage";
 import type {
@@ -31,6 +30,7 @@ export default function App() {
   const [collapsed, setCollapsed] = useState(true);
   const [results, setResults] = useState<RouletteResult[]>([]);
   const [runEntries, setRunEntries] = useState<MarbleEntry[]>([]);
+  const [liveEntries, setLiveEntries] = useState<MarbleEntry[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const parsedEntries = useMemo(() => parseEntries(names), [names]);
@@ -43,6 +43,11 @@ export default function App() {
       : winnerMode === "first"
         ? 1
         : clampWinnerRank(customWinnerRank, Math.max(total, 1));
+  const winner = results.find((result) => result.rank === winnerRank);
+  const resultIds = new Set(results.map((result) => result.id));
+  const pendingEntries = (liveEntries.length > 0 ? liveEntries : canvasEntries).filter(
+    (entry) => !resultIds.has(entry.id),
+  );
 
   const pushToast = useCallback((message: string) => {
     const toast = createToast(message);
@@ -65,6 +70,7 @@ export default function App() {
     (value: string) => {
       setNames(value);
       setResults([]);
+      setLiveEntries([]);
       if (status !== "running") {
         setStatus("idle");
       }
@@ -81,6 +87,7 @@ export default function App() {
     const shuffled = shuffleEntries(expandedEntries);
     setNames(shuffled.map((entry) => entry.name).join(","));
     setResults([]);
+    setLiveEntries([]);
   }, [expandedEntries, pushToast, status]);
 
   const handleStart = useCallback(() => {
@@ -94,7 +101,9 @@ export default function App() {
       return;
     }
 
-    setRunEntries(shuffleEntries(expandedEntries));
+    const nextEntries = shuffleEntries(expandedEntries);
+    setRunEntries(nextEntries);
+    setLiveEntries(nextEntries);
     setResults([]);
     setStatus("running");
   }, [expandedEntries, pushToast, status]);
@@ -123,6 +132,10 @@ export default function App() {
     setResults((current) => (current.some((item) => item.id === result.id) ? current : [...current, result]));
   }, []);
 
+  const handleLiveRank = useCallback((entries: MarbleEntry[]) => {
+    setLiveEntries(entries);
+  }, []);
+
   const handleComplete = useCallback(() => {
     setStatus("finished");
     window.setTimeout(() => setStatus("idle"), 1200);
@@ -132,13 +145,17 @@ export default function App() {
     <main className="roulette-app">
       <RouletteCanvas
         entries={canvasEntries}
+        results={results}
         status={status}
         theme={theme}
+        mapId={mapId}
+        winnerRank={winnerRank}
+        winner={winner}
         onResult={handleResult}
         onComplete={handleComplete}
+        onLiveRank={handleLiveRank}
       />
-      <RankingBoard total={total} results={results} selectedRank={winnerRank} />
-      <WinnerOverlay winner={results.find((result) => result.rank === winnerRank)} />
+      <RankingBoard total={total} results={results} pendingEntries={pendingEntries} selectedRank={winnerRank} />
       <ControlPanel
         names={names}
         mapId={mapId}
@@ -156,7 +173,6 @@ export default function App() {
         onWinnerModeChange={setWinnerMode}
         onWinnerRankChange={setCustomWinnerRank}
         onUnsupported={handleUnsupported}
-        onNotice={() => pushToast("공지 기능은 제거되었습니다.")}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />
       <ToastHost messages={toasts} />

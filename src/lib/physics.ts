@@ -1,13 +1,42 @@
-// Matter.js 월드와 룰렛 트랙, 구슬 바디 생성을 담당한다.
-import { Bodies, Body, Composite, Engine, Events, Runner } from "matter-js";
+// Matter.js 월드와 원본 StageDef 기반 룰렛 렌더링을 담당한다.
+import { Bodies, Body, Composite, Engine } from "matter-js";
 import type { MarbleEntry, RouletteResult, ThemeMode } from "../types";
-import { drawFruitMarble, getFruitStyle } from "./fruits";
+import {
+  initialZoom,
+  ROULETTE_STAGES,
+  wheelOfFortuneStage,
+  zoomThreshold,
+  type StageDef,
+  type StageEntity,
+  type StagePoint,
+} from "./stage";
+
+export interface RouletteCamera {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
+export interface RouletteMarble {
+  entry: MarbleEntry;
+  body: Body;
+  order: number;
+  hue: number;
+}
+
+interface StageBodyState {
+  entity: StageEntity;
+  bodies: Body[];
+  angle: number;
+}
 
 export interface RouletteWorld {
   engine: Engine;
-  runner: Runner;
-  marbles: Array<{ entry: MarbleEntry; body: Body }>;
-  finish: Body;
+  stage: StageDef;
+  entities: StageBodyState[];
+  marbles: RouletteMarble[];
+  camera: RouletteCamera;
+  elapsedMs: number;
 }
 
 export interface WorldSize {
@@ -15,82 +44,169 @@ export interface WorldSize {
   height: number;
 }
 
-type CollisionEvent = {
-  pairs: Array<{ bodyA: Body; bodyB: Body }>;
-};
-
-const marbleRadius = 24;
-
-export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize): RouletteWorld {
-  const engine = Engine.create({ gravity: { x: 0.45, y: 0.95 } });
-  const runner = Runner.create();
-  const railStyle = { isStatic: true, render: { visible: false } };
-  const leftWall = Bodies.rectangle(238, size.height * 0.42, 22, size.height * 0.8, railStyle);
-  const lowerRail = Bodies.rectangle(size.width * 0.62, size.height * 0.64, size.width * 0.64, 14, {
-    ...railStyle,
-    angle: -0.55,
-  });
-  const upperRail = Bodies.rectangle(size.width * 0.63, size.height * 0.43, size.width * 0.58, 14, {
-    ...railStyle,
-    angle: 0.72,
-  });
-  const deflector = Bodies.rectangle(size.width * 0.42, size.height * 0.5, 200, 14, {
-    ...railStyle,
-    angle: -0.18,
-  });
-  const floor = Bodies.rectangle(size.width / 2, size.height + 40, size.width, 80, railStyle);
-  const finish = Bodies.rectangle(size.width / 2, size.height - 34, size.width, 90, {
-    isStatic: true,
-    isSensor: true,
-    label: "finish",
-  });
-  const marbles = entries.map((entry, index) => {
-    const row = Math.floor(index / 8);
-    const column = index % 8;
-    const body = Bodies.circle(300 + column * 58, 94 + row * 56, marbleRadius, {
-      restitution: 0.32,
-      friction: 0.02,
-      frictionAir: 0.004,
-      label: entry.id,
-    });
-    Body.setVelocity(body, { x: 5.6 + entry.weight * 0.2 + column * 0.07, y: 0.5 + row * 0.2 });
-    return { entry, body };
-  });
-
-  Composite.add(engine.world, [
-    leftWall,
-    lowerRail,
-    upperRail,
-    deflector,
-    floor,
-    finish,
-    ...marbles.map((marble) => marble.body),
-  ]);
-
-  return { engine, runner, marbles, finish };
+interface SceneState {
+  entries: MarbleEntry[];
+  results: RouletteResult[];
+  selectedRank: number;
+  winner?: RouletteResult;
 }
 
-export function subscribeToFinish(world: RouletteWorld, onResult: (result: RouletteResult) => void) {
-  const finished = new Set<string>();
-  const handler = (event: CollisionEvent) => {
-    for (const pair of event.pairs) {
-      const marbleBody = pair.bodyA === world.finish ? pair.bodyB : pair.bodyB === world.finish ? pair.bodyA : null;
-      if (!marbleBody || finished.has(marbleBody.label)) {
-        continue;
-      }
+const marbleRadius = 0.25;
+const railThickness = 0.08;
+const minimapScale = 4;
 
-      const marble = world.marbles.find((item) => item.body === marbleBody);
-      if (!marble) {
-        continue;
-      }
+const themeColors = {
+  dark: {
+    background: "#000000",
+    entity: {
+      box: { fill: "cyan", outline: "cyan", bloom: "cyan", bloomRadius: 15 },
+      circle: { fill: "yellow", outline: "yellow", bloom: "yellow", bloomRadius: 15 },
+      polyline: { fill: "white", outline: "white", bloom: "cyan", bloomRadius: 15 },
+    },
+    minimapBackground: "#333333",
+    minimapViewport: "#ffffff",
+    marbleLightness: 75,
+    winnerBackground: "rgba(0, 0, 0, 0.58)",
+    winnerText: "#ffffff",
+    winnerOutline: "#000000",
+  },
+  light: {
+    background: "#eeeeee",
+    entity: {
+      box: { fill: "#226f92", outline: "#111111", bloom: "cyan", bloomRadius: 0 },
+      circle: { fill: "yellow", outline: "#ed7e11", bloom: "yellow", bloomRadius: 0 },
+      polyline: { fill: "white", outline: "#111111", bloom: "cyan", bloomRadius: 0 },
+    },
+    minimapBackground: "#fefefe",
+    minimapViewport: "#6699cc",
+    marbleLightness: 50,
+    winnerBackground: "rgba(255, 255, 255, 0.62)",
+    winnerText: "#4d4d4d",
+    winnerOutline: "#ffffff",
+  },
+} as const;
 
-      finished.add(marbleBody.label);
-      onResult({ ...marble.entry, rank: finished.size });
-    }
+export function getRouletteSpawnPosition(order: number, total: number) {
+  const maxLine = Math.ceil(total / 10);
+  const line = Math.floor(order / 10);
+  const lineDelta = -Math.max(0, Math.ceil(maxLine - 5));
+
+  return {
+    x: 10.25 + (order % 10) * 0.6,
+    y: maxLine - line + lineDelta,
   };
+}
 
-  Events.on(world.engine, "collisionStart", handler);
-  return () => Events.off(world.engine, "collisionStart", handler);
+export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize, stage: StageDef = wheelOfFortuneStage) {
+  const engine = Engine.create({ gravity: { x: 0, y: 1, scale: 0.001 } });
+  const entities = stage.entities.map(createStageBodyState);
+  const marbles = entries.map((entry, order) => {
+    const spawn = getRouletteSpawnPosition(order, entries.length);
+    const body = Bodies.circle(spawn.x, spawn.y, marbleRadius, {
+      density: 1,
+      friction: 0.03,
+      frictionAir: 0.0025,
+      restitution: 0.08,
+      label: entry.id,
+    });
+
+    return {
+      entry,
+      body,
+      order,
+      hue: getEntryHue(entry, order, entries.length),
+    };
+  });
+
+  Composite.add(engine.world, [...entities.flatMap((entity) => entity.bodies), ...marbles.map((marble) => marble.body)]);
+
+  return {
+    engine,
+    stage,
+    entities,
+    marbles,
+    camera: createPreviewCamera(size),
+    elapsedMs: 0,
+  };
+}
+
+export function advanceRouletteWorld(world: RouletteWorld, deltaMs: number) {
+  world.elapsedMs += deltaMs;
+
+  for (const entity of world.entities) {
+    if (entity.entity.type !== "kinematic") {
+      continue;
+    }
+
+    entity.angle += entity.entity.props.angularVelocity * (deltaMs / 1000);
+    for (const body of entity.bodies) {
+      Body.setAngle(body, entity.angle);
+      Body.setAngularVelocity(body, entity.entity.props.angularVelocity);
+    }
+  }
+
+  Engine.update(world.engine, deltaMs);
+}
+
+export function removeMarbleFromWorld(world: RouletteWorld, marble: RouletteMarble) {
+  Composite.remove(world.engine.world, marble.body);
+  world.marbles = world.marbles.filter((item) => item.entry.id !== marble.entry.id);
+}
+
+export function shakeSlowMarbles(world: RouletteWorld, finishedIds = new Set<string>()) {
+  for (const marble of world.marbles) {
+    if (finishedIds.has(marble.entry.id)) {
+      continue;
+    }
+
+    const speed = Math.hypot(marble.body.velocity.x, marble.body.velocity.y);
+    if (speed > 0.08) {
+      continue;
+    }
+
+    Body.applyForce(marble.body, marble.body.position, {
+      x: (Math.sin(world.elapsedMs / 300 + marble.order) * 0.0015) / Math.max(marble.entry.weight, 1),
+      y: 0.0025,
+    });
+  }
+}
+
+export function getLiveMarbleOrder(world: RouletteWorld, finishedIds = new Set<string>()) {
+  return world.marbles
+    .filter((marble) => !finishedIds.has(marble.entry.id))
+    .sort((left, right) => right.body.position.y - left.body.position.y || left.order - right.order);
+}
+
+export function getStageForMap(mapId: keyof typeof ROULETTE_STAGES) {
+  return ROULETTE_STAGES[mapId];
+}
+
+export function updateRouletteCamera(
+  world: RouletteWorld,
+  size: WorldSize,
+  finishedIds: Set<string>,
+  winnerRank: number,
+  resultCount: number,
+) {
+  const pending = getLiveMarbleOrder(world, finishedIds);
+  const targetIndex = Math.max(0, Math.min(pending.length - 1, winnerRank - resultCount - 1));
+  const target = pending[targetIndex] ?? pending[0];
+
+  if (!target) {
+    world.camera.zoom += (1 - world.camera.zoom) / 10;
+    return;
+  }
+
+  const goalDist = Math.abs(world.stage.zoomY - world.camera.y);
+  const targetZoom = Math.max(1, (1 - goalDist / zoomThreshold) * 4);
+  const nextZoom = target.body.position.y > world.stage.zoomY - zoomThreshold ? targetZoom : 1;
+
+  world.camera.x += (target.body.position.x - world.camera.x) / 10;
+  world.camera.y += (target.body.position.y - world.camera.y) / 10;
+  world.camera.zoom += (nextZoom - world.camera.zoom) / 10;
+
+  const halfViewHeight = size.height / (initialZoom * world.camera.zoom * 2);
+  world.camera.y = Math.max(2, Math.min(world.stage.goalY + halfViewHeight, world.camera.y));
 }
 
 export function drawRouletteScene(
@@ -98,133 +214,354 @@ export function drawRouletteScene(
   world: RouletteWorld | null,
   size: WorldSize,
   theme: ThemeMode,
-  previewEntries: MarbleEntry[] = [],
+  scene: SceneState,
 ) {
+  const colors = themeColors[theme];
+  const stage = world?.stage ?? wheelOfFortuneStage;
+  const camera = world?.camera ?? createPreviewCamera(size);
+
   context.clearRect(0, 0, size.width, size.height);
-  context.fillStyle = theme === "dark" ? "#020302" : "#f4f6f7";
+  context.fillStyle = colors.background;
   context.fillRect(0, 0, size.width, size.height);
 
-  drawMapPreview(context, size, theme);
-  drawMainRails(context, size, theme);
+  drawStageView(context, stage, world, size, camera, theme, scene);
+  drawMinimap(context, stage, world, size, camera, theme, scene.entries);
+  drawWinnerBanner(context, scene.winner, size, theme);
+}
 
-  if (!world) {
-    drawPreviewMarbles(context, previewEntries, size);
+function createPreviewCamera(size: WorldSize): RouletteCamera {
+  return {
+    x: 13,
+    y: size.width < 640 ? 12 : 10,
+    zoom: size.width < 640 ? 0.82 : 1,
+  };
+}
+
+function createStageBodyState(entity: StageEntity): StageBodyState {
+  const bodies = createMatterBodies(entity);
+  return {
+    entity,
+    bodies,
+    angle: entity.shape.type === "box" ? entity.shape.rotation : 0,
+  };
+}
+
+function createMatterBodies(entity: StageEntity) {
+  const options = {
+    isStatic: true,
+    friction: 0.03,
+    restitution: entity.props.restitution,
+    render: { visible: false },
+  };
+
+  switch (entity.shape.type) {
+    case "polyline":
+      return entity.shape.points.slice(0, -1).map((point, index) => {
+        const next = entity.shape.type === "polyline" ? entity.shape.points[index + 1] : point;
+        return createSegmentBody(point, next, entity.position, options);
+      });
+    case "box": {
+      const body = Bodies.rectangle(
+        entity.position.x,
+        entity.position.y,
+        Math.max(entity.shape.width * 2, railThickness),
+        Math.max(entity.shape.height * 2, railThickness),
+        options,
+      );
+      Body.setAngle(body, entity.shape.rotation);
+      return [body];
+    }
+    case "circle":
+      return [Bodies.circle(entity.position.x, entity.position.y, entity.shape.radius, options)];
+  }
+}
+
+function createSegmentBody(
+  from: StagePoint,
+  to: StagePoint,
+  position: { x: number; y: number },
+  options: Parameters<typeof Bodies.rectangle>[4],
+) {
+  const ax = from[0] + position.x;
+  const ay = from[1] + position.y;
+  const bx = to[0] + position.x;
+  const by = to[1] + position.y;
+  const dx = bx - ax;
+  const dy = by - ay;
+  const length = Math.hypot(dx, dy);
+  const body = Bodies.rectangle(ax + dx / 2, ay + dy / 2, length, railThickness, options);
+  Body.setAngle(body, Math.atan2(dy, dx));
+  return body;
+}
+
+function drawStageView(
+  context: CanvasRenderingContext2D,
+  stage: StageDef,
+  world: RouletteWorld | null,
+  size: WorldSize,
+  camera: RouletteCamera,
+  theme: ThemeMode,
+  scene: SceneState,
+) {
+  context.save();
+  applyWorldTransform(context, size, camera);
+  drawEntities(context, stage, world, theme, 3 / (initialZoom * camera.zoom));
+  drawWorldMarbles(context, world, scene, camera, theme);
+  context.restore();
+
+  drawMarbleLabels(context, world, scene, size, camera, theme);
+}
+
+function applyWorldTransform(context: CanvasRenderingContext2D, size: WorldSize, camera: RouletteCamera) {
+  context.translate(size.width / 2, size.height / 2);
+  context.scale(initialZoom * camera.zoom, initialZoom * camera.zoom);
+  context.translate(-camera.x, -camera.y);
+}
+
+function drawEntities(
+  context: CanvasRenderingContext2D,
+  stage: StageDef,
+  world: RouletteWorld | null,
+  theme: ThemeMode,
+  lineWidth: number,
+) {
+  const colors = themeColors[theme];
+
+  stage.entities.forEach((entity, index) => {
+    const bodyState = world?.entities[index];
+    const palette = colors.entity[entity.shape.type];
+    const color = entity.shape.color ?? palette.outline;
+
+    context.save();
+    context.translate(entity.position.x, entity.position.y);
+    context.strokeStyle = color;
+    context.fillStyle = entity.shape.color ?? palette.fill;
+    context.shadowColor = entity.shape.bloomColor ?? entity.shape.color ?? palette.bloom;
+    context.shadowBlur = palette.bloomRadius / initialZoom;
+    context.lineWidth = lineWidth;
+
+    switch (entity.shape.type) {
+      case "polyline":
+        if (entity.shape.points.length > 0) {
+          context.beginPath();
+          context.moveTo(entity.shape.points[0][0], entity.shape.points[0][1]);
+          for (let pointIndex = 1; pointIndex < entity.shape.points.length; pointIndex += 1) {
+            context.lineTo(entity.shape.points[pointIndex][0], entity.shape.points[pointIndex][1]);
+          }
+          context.stroke();
+        }
+        break;
+      case "box": {
+        const width = entity.shape.width * 2;
+        const height = entity.shape.height * 2;
+        context.rotate(bodyState?.angle ?? entity.shape.rotation);
+        context.fillRect(-width / 2, -height / 2, width, height);
+        context.strokeRect(-width / 2, -height / 2, width, height);
+        break;
+      }
+      case "circle":
+        context.beginPath();
+        context.arc(0, 0, entity.shape.radius, 0, Math.PI * 2);
+        context.stroke();
+        break;
+    }
+
+    context.restore();
+  });
+}
+
+function drawWorldMarbles(
+  context: CanvasRenderingContext2D,
+  world: RouletteWorld | null,
+  scene: SceneState,
+  camera: RouletteCamera,
+  theme: ThemeMode,
+) {
+  const colors = themeColors[theme];
+  const pending = world ? getLiveMarbleOrder(world, new Set(scene.results.map((result) => result.id))) : [];
+  const selected = pending[Math.max(0, scene.selectedRank - scene.results.length - 1)];
+  const previewMarbles = world
+    ? world.marbles
+    : scene.entries.map((entry, order) => ({
+        entry,
+        body: { position: getRouletteSpawnPosition(order, scene.entries.length), angle: 0 } as Body,
+        order,
+        hue: getEntryHue(entry, order, scene.entries.length),
+      }));
+
+  for (const marble of previewMarbles) {
+    context.beginPath();
+    context.fillStyle = `hsl(${marble.hue} 100% ${colors.marbleLightness}%)`;
+    context.arc(marble.body.position.x, marble.body.position.y, marbleRadius, 0, Math.PI * 2);
+    context.fill();
+
+    if (selected?.entry.id === marble.entry.id) {
+      context.lineWidth = 2 / (initialZoom * camera.zoom);
+      context.strokeStyle = theme === "dark" ? "#ffffff" : "#111111";
+      context.stroke();
+    }
+  }
+}
+
+function drawMarbleLabels(
+  context: CanvasRenderingContext2D,
+  world: RouletteWorld | null,
+  scene: SceneState,
+  size: WorldSize,
+  camera: RouletteCamera,
+  theme: ThemeMode,
+) {
+  const marbles = world
+    ? world.marbles
+    : scene.entries.map((entry, order) => ({
+        entry,
+        body: { position: getRouletteSpawnPosition(order, scene.entries.length) } as Body,
+        order,
+        hue: getEntryHue(entry, order, scene.entries.length),
+      }));
+
+  context.save();
+  context.textAlign = "center";
+  context.textBaseline = "top";
+  context.font = "700 14px 'Segoe UI', 'Malgun Gothic', sans-serif";
+  context.lineWidth = 3;
+  context.strokeStyle = "#000000";
+
+  for (const marble of marbles) {
+    const point = projectWorldPoint(marble.body.position.x, marble.body.position.y, size, camera);
+    if (point.x < -80 || point.x > size.width + 80 || point.y < -60 || point.y > size.height + 120) {
+      continue;
+    }
+
+    context.fillStyle = `hsl(${marble.hue} 100% ${themeColors[theme].marbleLightness}%)`;
+    context.strokeText(marble.entry.label, point.x, point.y + marbleRadius * initialZoom * camera.zoom + 3);
+    context.fillText(marble.entry.label, point.x, point.y + marbleRadius * initialZoom * camera.zoom + 3);
+  }
+
+  context.restore();
+}
+
+function drawMinimap(
+  context: CanvasRenderingContext2D,
+  stage: StageDef,
+  world: RouletteWorld | null,
+  size: WorldSize,
+  camera: RouletteCamera,
+  theme: ThemeMode,
+  entries: MarbleEntry[],
+) {
+  const colors = themeColors[theme];
+  const x = 10;
+  const y = 10;
+  const width = 26 * minimapScale;
+  const height = stage.goalY * minimapScale;
+
+  context.save();
+  context.translate(x, y);
+  context.fillStyle = colors.minimapBackground;
+  context.fillRect(0, 0, width, height);
+  context.strokeStyle = "green";
+  context.lineWidth = 1;
+  context.strokeRect(0, 0, width, height);
+  context.scale(minimapScale, minimapScale);
+  drawEntities(context, stage, world, theme, 0.08);
+  drawMinimapMarbles(context, world, entries);
+  drawMinimapViewport(context, size, camera, colors.minimapViewport);
+  context.restore();
+}
+
+function drawMinimapMarbles(context: CanvasRenderingContext2D, world: RouletteWorld | null, entries: MarbleEntry[]) {
+  const marbles = world
+    ? world.marbles
+    : entries.map((entry, order) => ({
+        entry,
+        body: { position: getRouletteSpawnPosition(order, entries.length) } as Body,
+        order,
+        hue: getEntryHue(entry, order, entries.length),
+      }));
+
+  for (const marble of marbles) {
+    context.beginPath();
+    context.fillStyle = `hsl(${marble.hue} 100% 65%)`;
+    context.arc(marble.body.position.x, marble.body.position.y, 0.5, 0, Math.PI * 2);
+    context.fill();
+  }
+}
+
+function drawMinimapViewport(
+  context: CanvasRenderingContext2D,
+  size: WorldSize,
+  camera: RouletteCamera,
+  color: string,
+) {
+  const width = size.width / (initialZoom * camera.zoom);
+  const height = size.height / (initialZoom * camera.zoom);
+
+  context.save();
+  context.strokeStyle = color;
+  context.lineWidth = 0.1 / camera.zoom;
+  context.strokeRect(camera.x - width / 2, camera.y - height / 2, width, height);
+  context.restore();
+}
+
+function drawWinnerBanner(
+  context: CanvasRenderingContext2D,
+  winner: RouletteResult | undefined,
+  size: WorldSize,
+  theme: ThemeMode,
+) {
+  if (!winner) {
     return;
   }
 
-  for (const marble of world.marbles) {
-    drawFruitMarble(context, marble.entry, marble.body.position.x, marble.body.position.y, marbleRadius);
-    const style = getFruitStyle(marble.entry.name);
-    context.fillStyle = style.text;
-    context.font = "900 24px 'Segoe UI', sans-serif";
-    context.textAlign = "center";
-    context.shadowColor = "#041111";
-    context.shadowBlur = 5;
-    context.fillText(marble.entry.label, marble.body.position.x, marble.body.position.y + marbleRadius + 22);
-  }
-}
-
-function drawMainRails(context: CanvasRenderingContext2D, size: WorldSize, theme: ThemeMode) {
-  context.save();
-  context.strokeStyle = theme === "dark" ? "#dffffd" : "#1d7271";
-  context.shadowColor = "#22f7ef";
-  context.shadowBlur = theme === "dark" ? 16 : 4;
-  context.lineWidth = 5;
-  context.beginPath();
-  context.moveTo(size.width * 0.38, -10);
-  context.lineTo(size.width * 0.52, size.height * 0.5);
-  context.lineTo(size.width * 0.88, -10);
-  context.stroke();
-  context.beginPath();
-  context.moveTo(size.width * 0.34, size.height * 0.51);
-  context.lineTo(size.width * 0.52, size.height * 0.46);
-  context.stroke();
-
-  context.strokeStyle = "#16f2e4";
-  context.shadowColor = "#16f2e4";
-  context.shadowBlur = 22;
-  context.lineWidth = 18;
-  context.beginPath();
-  context.moveTo(size.width * 0.34, size.height * 0.51);
-  context.lineTo(size.width * 0.49, size.height * 0.46);
-  context.stroke();
-
-  context.strokeStyle = "rgba(223, 255, 253, 0.82)";
-  context.shadowBlur = 10;
-  context.lineWidth = 6;
-  context.beginPath();
-  context.moveTo(size.width * 0.52, size.height * 0.5);
-  context.lineTo(size.width * 0.52, size.height + 30);
-  context.stroke();
-  context.restore();
-}
-
-function drawMapPreview(context: CanvasRenderingContext2D, size: WorldSize, theme: ThemeMode) {
-  const panelX = 18;
-  const panelY = 18;
-  const panelWidth = 210;
-  const panelHeight = size.height - 38;
+  const colors = themeColors[theme];
+  const bannerHeight = Math.min(168, size.height * 0.28);
+  const bannerX = size.width > 760 ? size.width / 2 : 0;
+  const bannerWidth = size.width > 760 ? size.width / 2 : size.width;
+  const bannerY = size.height - bannerHeight;
+  const marbleSize = Math.min(100, bannerHeight * 0.62);
+  const marbleCenterX = bannerX + bannerWidth - marbleSize / 2 - 20;
+  const marbleCenterY = bannerY + bannerHeight / 2;
+  const textRightX = marbleCenterX - marbleSize / 2 - 20;
 
   context.save();
-  context.fillStyle = theme === "dark" ? "rgba(50, 50, 50, 0.9)" : "rgba(215, 218, 218, 0.88)";
-  context.fillRect(panelX, panelY, panelWidth, panelHeight);
-  context.save();
-  context.strokeStyle = theme === "dark" ? "rgba(0, 255, 108, 0.7)" : "rgba(0, 120, 64, 0.7)";
-  context.lineWidth = 3;
-  context.strokeRect(panelX, panelY, panelWidth, panelHeight);
-  context.restore();
+  context.fillStyle = colors.winnerBackground;
+  context.fillRect(bannerX, bannerY, bannerWidth, bannerHeight);
 
-  context.strokeStyle = theme === "dark" ? "rgba(180, 180, 180, 0.35)" : "rgba(80, 80, 80, 0.35)";
-  context.lineWidth = 3;
   context.beginPath();
-  context.moveTo(92, panelY - 60);
-  context.lineTo(92, 88);
-  context.lineTo(36, 174);
-  context.lineTo(36, 228);
-  context.lineTo(136, 270);
-  context.lineTo(88, 326);
-  context.lineTo(88, 396);
-  context.lineTo(162, 452);
-  context.lineTo(92, 526);
-  context.lineTo(92, panelY + panelHeight + 70);
-  context.moveTo(152, panelY - 40);
-  context.lineTo(152, 94);
-  context.lineTo(96, 170);
-  context.lineTo(96, 199);
-  context.lineTo(211, 257);
-  context.lineTo(137, 319);
-  context.lineTo(137, 370);
-  context.lineTo(210, 436);
-  context.lineTo(150, 512);
-  context.lineTo(150, panelY + panelHeight + 70);
-  context.stroke();
+  context.fillStyle = `hsl(${hashHue(winner.id)} 100% ${colors.marbleLightness}%)`;
+  context.arc(marbleCenterX, marbleCenterY, marbleSize / 2, 0, Math.PI * 2);
+  context.fill();
 
-  context.strokeStyle = "rgba(34, 247, 239, 0.35)";
+  context.textAlign = "right";
   context.lineWidth = 4;
-  for (let index = 0; index < 6; index += 1) {
-    context.beginPath();
-    context.moveTo(118 + (index % 2) * 22, 244 + index * 16);
-    context.lineTo(124 + (index % 2) * 22, 248 + index * 16);
-    context.stroke();
-  }
+  context.strokeStyle = colors.winnerOutline;
+  context.fillStyle = colors.winnerText;
+  context.font = "700 48px 'Segoe UI', sans-serif";
+  context.strokeText("Winner", textRightX, bannerY + bannerHeight * 0.34);
+  context.fillText("Winner", textRightX, bannerY + bannerHeight * 0.34);
+  context.font = "900 72px 'Segoe UI', 'Malgun Gothic', sans-serif";
+  context.fillStyle = `hsl(${hashHue(winner.id)} 100% ${colors.marbleLightness}%)`;
+  context.strokeText(winner.name, textRightX, bannerY + bannerHeight * 0.75);
+  context.fillText(winner.name, textRightX, bannerY + bannerHeight * 0.75);
   context.restore();
 }
 
-function drawPreviewMarbles(context: CanvasRenderingContext2D, entries: MarbleEntry[], size: WorldSize) {
-  const centerY = size.height * 0.49;
-  const startX = Math.max(330, size.width * 0.27);
-  const gap = Math.min(92, Math.max(64, size.width / Math.max(entries.length + 7, 10)));
+function projectWorldPoint(x: number, y: number, size: WorldSize, camera: RouletteCamera) {
+  return {
+    x: size.width / 2 + (x - camera.x) * initialZoom * camera.zoom,
+    y: size.height / 2 + (y - camera.y) * initialZoom * camera.zoom,
+  };
+}
 
-  entries.forEach((entry, index) => {
-    const x = startX + index * gap;
-    const y = centerY + Math.sin(index * 0.8) * 12;
-    drawFruitMarble(context, entry, x, y, marbleRadius + 10);
-    const style = getFruitStyle(entry.name);
-    context.fillStyle = style.text;
-    context.font = "900 28px 'Segoe UI', sans-serif";
-    context.textAlign = "center";
-    context.shadowColor = "#041111";
-    context.shadowBlur = 5;
-    context.fillText(entry.label, x, y + marbleRadius + 34);
-  });
+function getEntryHue(entry: MarbleEntry, order: number, total: number) {
+  return total > 0 ? (360 / total) * order : hashHue(entry.id);
+}
+
+function hashHue(value: string) {
+  let hash = 0;
+  for (let index = 0; index < value.length; index += 1) {
+    hash = (hash * 31 + value.charCodeAt(index)) % 360;
+  }
+  return hash;
 }

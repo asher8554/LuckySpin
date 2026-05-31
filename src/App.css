@@ -103,51 +103,6 @@ button:disabled {
   filter: drop-shadow(0 0 8px currentColor);
 }
 
-.winner-overlay {
-  position: fixed;
-  right: 36px;
-  bottom: 76px;
-  z-index: 12;
-  display: flex;
-  align-items: center;
-  gap: 26px;
-  pointer-events: none;
-  text-shadow: 4px 4px 0 #282828, 0 0 10px #000;
-}
-
-.winner-overlay span,
-.winner-overlay strong {
-  display: block;
-  line-height: 0.88;
-  font-weight: 900;
-}
-
-.winner-overlay span {
-  color: #fff;
-  font-size: clamp(58px, 8vw, 104px);
-}
-
-.winner-overlay strong {
-  color: #ff72ff;
-  font-size: clamp(86px, 12vw, 156px);
-}
-
-.winner-fruit {
-  width: clamp(120px, 15vw, 196px);
-  aspect-ratio: 1;
-  border-radius: 999px;
-  background: radial-gradient(circle at 48% 48%, #f8ffd0 0 10%, #83bf35 11% 45%, #344f18 76%, #d5b98a 78%, #8f6b33 100%);
-  box-shadow: 0 0 20px rgba(255, 255, 255, 0.35), inset 0 0 16px rgba(255, 255, 255, 0.35);
-}
-
-.winner-fruit.watermelon {
-  background: radial-gradient(circle at 44% 42%, #ff8d88 0 38%, #111 39% 41%, #f1fff0 42% 50%, #52ab42 51% 100%);
-}
-
-.winner-fruit.orange {
-  background: radial-gradient(circle at 50% 50%, #fff2a0 0 7%, #ffbf39 8% 60%, #f38417 100%);
-}
-
 .control-panel {
   position: fixed;
   left: 1rem;
@@ -404,10 +359,6 @@ button:disabled {
   .ranking-board li,
   .ranking-count {
     font-size: 20px;
-  }
-
-  .winner-overlay {
-    display: none;
   }
 
   .control-panel {

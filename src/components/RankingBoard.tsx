@@ -1,15 +1,16 @@
-// 룰렛 진행 수와 도착 순위를 표시한다.
-import type { RouletteResult } from "../types";
+// 룰렛 진행 수와 도착 순위, 남은 구슬 순서를 표시한다.
+import type { MarbleEntry, RouletteResult } from "../types";
 
 const rankColors = ["#6f8cff", "#ff5fb8", "#39e8d0", "#57e66e", "#f5d84a", "#ff6e6e"];
 
 interface RankingBoardProps {
   total: number;
   results: RouletteResult[];
+  pendingEntries: MarbleEntry[];
   selectedRank: number;
 }
 
-export function RankingBoard({ total, results, selectedRank }: RankingBoardProps) {
+export function RankingBoard({ total, results, pendingEntries, selectedRank }: RankingBoardProps) {
   return (
     <aside className="ranking-board" aria-label="당첨 순위">
       <div className="ranking-count">
@@ -27,6 +28,20 @@ export function RankingBoard({ total, results, selectedRank }: RankingBoardProps
             <strong>#{result.rank}</strong>
           </li>
         ))}
+        {pendingEntries.map((entry, index) => {
+          const rank = results.length + index + 1;
+          return (
+            <li
+              className={rank === selectedRank ? "selected pending" : "pending"}
+              key={`${entry.id}-${rank}`}
+              style={{ color: rankColors[(rank - 1) % rankColors.length] }}
+            >
+              <em>{rank === selectedRank ? "☆" : ""}</em>
+              <span>{entry.name}</span>
+              <strong>#{rank}</strong>
+            </li>
+          );
+        })}
       </ol>
     </aside>
   );

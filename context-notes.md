@@ -36,3 +36,17 @@
 - 사용자가 원본 `https://lazygyu.github.io/roulette/`과 구현이 너무 다르다고 지적했다. 우선 같은 viewport로 원본과 현재 구현을 캡처한 뒤, 전체 구조보다 눈에 띄는 시각 차이를 줄이는 쪽으로 개선한다.
 - 1280x720 원본 비교에서 가장 큰 차이는 기본 공지 모달 부재, 왼쪽 회색 맵 미니뷰 부재, 트랙의 두께와 위치, 우승자 대형 표시 부재, 순위판 체크/별 표시 부재였다.
 - 개선으로 기본 NOTICE 모달과 할인 배너, 왼쪽 맵 미니뷰, 원본에 가까운 얇은 네온 트랙, 과일 질감 강화, 우승자 오버레이, 순위판 기호를 추가했다. 트랙 변경 후 일부 구슬이 늦게 도착해 9초 fallback 집계를 추가했다.
+
+## 2026-05-31 Original Source Rework
+
+- 사용자가 `lazygyu/roulette` 원본 저장소를 보고 구현을 다시 파악하라고 요청했다.
+- 원본 저장소를 `.reference/lazygyu-roulette`에 복제했다. 이 폴더는 참조 전용이며 Git 추적에서 제외한다.
+- 하위 에이전트 두 개를 사용했다. 첫 에이전트는 원본의 핵심 파일을 식별했고, 두 번째 에이전트는 현재 구현과 원본의 차이를 정리했다.
+- 확인한 핵심 차이는 원본의 `StageDef.entities`, `goalY`, 카메라 추적, live rank, selected winner 판정이 현재 구현에 제대로 반영되지 않은 점이다.
+- 전체 Box2D 포팅은 이번 변경의 필수 조건으로 보지 않는다. 기존 React/Vite/Matter.js 구조를 유지하되 원본 좌표계와 stage entity 모델을 도입하는 방향이 더 작고 검증 가능하다.
+- `src/lib/stage.ts`에 원본 첫 맵 `Wheel of fortune`의 46개 entity를 코드화했다. 나머지 세 맵은 아직 구현하지 않고 선택 시 기존처럼 안내 토스트를 유지한다.
+- `src/lib/physics.ts`는 임의 과일 프리뷰와 고정 viewport 트랙 대신 stage entity를 Matter.js body와 canvas renderer 양쪽에 사용한다.
+- 결과 판정은 sensor 충돌 대신 원본처럼 구슬의 `y > goalY` 조건으로 바꿨고, 선택 당첨 순위에 도달하면 완료 처리한다.
+- 브라우저 QA 결과 데스크톱 시작 전 `0 / 6`, 시작 후 `1 / 6`, NOTICE 텍스트 0개, 모바일 설정과 시작 버튼 표시, 콘솔 warning/error 0건을 확인했다.
+- 코드 리뷰에서 18초 fallback이 goalY 판정 목표와 충돌한다는 Critical 지적을 받았다. fallback 결과 확정은 제거하고 느린 구슬 보조 힘만 주도록 바꿨다.
+- 리뷰에서 완료된 구슬이 렌더 목록에 남는 문제와 kinematic 바퀴의 각속도 미반영 문제도 지적받았다. `removeMarbleFromWorld`가 `world.marbles`에서도 제거하도록 바꾸고, 회전 바디에 angular velocity를 반영했다.

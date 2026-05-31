@@ -4,10 +4,10 @@ import type { MapId, MarbleEntry, ParsedEntry } from "../types";
 export const DEFAULT_NAMES = "수박*2,키위*2,귤*2";
 
 export const ROULETTE_MAPS: Array<{ id: MapId; label: string; enabled: boolean }> = [
-  { id: "wheel", label: "운명의 수레바퀴", enabled: true },
-  { id: "bubble", label: "버블팝", enabled: false },
-  { id: "jar", label: "욕망의 항아리", enabled: false },
-  { id: "night", label: "밤을 달리다", enabled: false },
+  { id: "wheel", label: "Wheel of fortune", enabled: true },
+  { id: "bubble", label: "BubblePop", enabled: false },
+  { id: "jar", label: "Pot of greed", enabled: false },
+  { id: "night", label: "Yoru ni Kakeru", enabled: false },
 ];
 
 const ENTRY_PATTERN = /^\s*([^/*]+?)\s*(?:\/(\d+))?\s*(?:\*(\d+))?\s*$/;

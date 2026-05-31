@@ -1,6 +1,5 @@
 // 이름 입력과 룰렛 설정, 실행 버튼을 제공하는 하단 패널이다.
 import {
-  Bell,
   Bomb,
   Map,
   Moon,
@@ -33,7 +32,6 @@ interface ControlPanelProps {
   onWinnerModeChange: (mode: WinnerMode) => void;
   onWinnerRankChange: (rank: number) => void;
   onUnsupported: (feature: string) => void;
-  onNotice: () => void;
   onToggleCollapsed: () => void;
 }
 
@@ -54,7 +52,6 @@ export function ControlPanel({
   onWinnerModeChange,
   onWinnerRankChange,
   onUnsupported,
-  onNotice,
   onToggleCollapsed,
 }: ControlPanelProps) {
   const running = status === "running";
@@ -80,9 +77,6 @@ export function ControlPanel({
           onChange={(event) => onNamesChange(event.target.value)}
         />
         <div className="action-row">
-          <button type="button" aria-label="공지" onClick={onNotice}>
-            <Bell size={24} />
-          </button>
           <button type="button" className="shop-button" onClick={() => onUnsupported("상점")}>
             <Store size={22} />
             <span>NEW</span>

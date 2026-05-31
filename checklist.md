@@ -46,3 +46,17 @@
 - [x] 테스트와 빌드를 다시 실행한다.
 - [x] 브라우저로 데스크톱과 모바일을 확인한다.
 - [x] 변경 사항을 커밋하고 Pages에 배포한다.
+
+## Original Source Rework
+
+- [x] 원본 `lazygyu/roulette` 저장소를 `.reference/lazygyu-roulette`에 복제했다.
+- [x] 하위 에이전트로 원본 구조와 현재 구현 차이를 비교했다.
+- [x] 원본 기준 재작업 계획 문서를 작성했다.
+- [x] `.reference/`를 Git 추적 대상에서 제외한다.
+- [x] 원본 `StageDef.entities` 기반 맵 데이터를 도입한다.
+- [x] stage entity 기반 Matter.js 바디 생성과 캔버스 렌더링을 구현한다.
+- [x] `goalY` 기준 결과 판정과 live rank 표시를 구현한다.
+- [x] 원본과 충돌하는 임시 프리뷰와 비활성 제약을 정리한다.
+- [x] README에 원본 저장소 기준과 구현 범위를 갱신한다.
+- [x] `npm test`, `npm run build`, 브라우저 검증을 통과시킨다.
+- [x] 변경 사항을 커밋하고 GitHub Pages 배포를 확인한다.
