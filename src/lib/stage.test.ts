@@ -7,6 +7,7 @@ import {
   getLiveMarbleOrder,
   getRouletteSpawnPosition,
   removeMarbleFromWorld,
+  shakeSlowMarbles,
 } from "./physics";
 import { wheelOfFortuneStage } from "./stage";
 import type { MarbleEntry } from "../types";
@@ -58,5 +59,37 @@ describe("stage based physics", () => {
 
     expect(world.marbles.map((item) => item.entry.id)).toEqual(["b-1-0"]);
     expect(getLiveMarbleOrder(world).map((item) => item.entry.id)).toEqual(["b-1-0"]);
+  });
+
+  it("구슬은 첫 경사 벽에서 자유낙하가 아닌 수평 편향을 받는다", () => {
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 });
+    const marble = world.marbles[0];
+    const startX = marble.body.position.x;
+
+    for (let step = 0; step < 180; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+    }
+
+    expect(Math.abs(marble.body.position.x - startX)).toBeGreaterThan(0.35);
+    expect(marble.body.position.y).toBeLessThan(world.stage.goalY);
+  });
+
+  it("구슬은 레일과 충돌한 뒤 결국 goalY까지 진행한다", () => {
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 });
+    const marble = world.marbles[0];
+    let reachedGoal = false;
+
+    for (let step = 0; step < 3600; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+      if (step % 72 === 0) {
+        shakeSlowMarbles(world);
+      }
+      if (marble.body.position.y > world.stage.goalY) {
+        reachedGoal = true;
+        break;
+      }
+    }
+
+    expect(reachedGoal).toBe(true);
   });
 });

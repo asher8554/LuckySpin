@@ -98,7 +98,7 @@ export function getRouletteSpawnPosition(order: number, total: number) {
 }
 
 export function createRouletteWorld(entries: MarbleEntry[], size: WorldSize, stage: StageDef = wheelOfFortuneStage) {
-  const engine = Engine.create({ gravity: { x: 0, y: 1, scale: 0.001 } });
+  const engine = Engine.create({ gravity: { x: 0, y: 1, scale: 0.000006 } });
   const entities = stage.entities.map(createStageBodyState);
   const marbles = entries.map((entry, order) => {
     const spawn = getRouletteSpawnPosition(order, entries.length);

@@ -60,3 +60,10 @@
 - [x] README에 원본 저장소 기준과 구현 범위를 갱신한다.
 - [x] `npm test`, `npm run build`, 브라우저 검증을 통과시킨다.
 - [x] 변경 사항을 커밋하고 GitHub Pages 배포를 확인한다.
+
+## Physics Collision Fix
+
+- [x] 자유낙하 증상을 테스트로 재현했다.
+- [x] Matter.js 중력 스케일이 원본 Box2D 좌표계에 비해 너무 커서 레일을 통과하는 원인을 확인했다.
+- [x] 중력 스케일을 낮추고 stuck assist 조건을 포함한 진행 테스트를 추가했다.
+- [x] `npm test`, `npm run build`, 브라우저 검증을 통과시켰다.
