@@ -83,4 +83,4 @@
 - [x] polyline 충돌을 틈 없는 circle-vs-segment 해석으로 교체한다.
 - [x] kinematic wheel은 직접 충돌에서 제외하고 시각 회전으로만 유지한다.
 - [x] `npm test`, `npm run build`, 브라우저 검증을 통과시킨다.
-- [ ] Pages 배포 검증을 통과시킨다.
+- [x] Pages 배포 검증을 통과시킨다.

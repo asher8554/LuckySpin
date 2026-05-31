@@ -79,3 +79,4 @@
 - 브라우저 QA에서 기본 6개가 20초 이상 `0 / 6`에 머무르는 문제가 남아 있었다. 원인은 내부 polyline joint endpoint가 둥근 cap처럼 작동해 마지막 funnel과 중간 꺾임에서 구슬을 막는 것이었다.
 - 내부 joint endpoint cap 충돌을 제외하고 adjacent segment만 처리하게 바꿨다. stuck assist 주기는 600ms로 낮췄고, 직접 충돌 해석의 중력과 속도 상한을 조정해 30초 안에 첫 결과가 나오게 했다.
 - 로컬 QA는 desktop 1280x720과 mobile 390x844에서 각각 `1 / 6`까지 도달했고 console warning/error 0건이었다.
+- GitHub Pages 배포 뒤 `https://asher8554.github.io/LuckySpin/`에서 desktop 1280x720 QA를 다시 실행했다. 약 31.7초에 `1 / 6`까지 도달했고 console warning/error 0건이었다.
