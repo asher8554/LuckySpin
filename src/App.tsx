@@ -1,7 +1,6 @@
 // LuckySpin 앱의 상태와 룰렛 화면을 연결한다.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ControlPanel } from "./components/ControlPanel";
-import { NoticeModal } from "./components/NoticeModal";
 import { RankingBoard } from "./components/RankingBoard";
 import { RouletteCanvas } from "./components/RouletteCanvas";
 import { ToastHost } from "./components/ToastHost";
@@ -30,7 +29,6 @@ export default function App() {
   const [customWinnerRank, setCustomWinnerRank] = useState(1);
   const [status, setStatus] = useState<RouletteStatus>("idle");
   const [collapsed, setCollapsed] = useState(true);
-  const [noticeOpen, setNoticeOpen] = useState(true);
   const [results, setResults] = useState<RouletteResult[]>([]);
   const [runEntries, setRunEntries] = useState<MarbleEntry[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
@@ -158,10 +156,9 @@ export default function App() {
         onWinnerModeChange={setWinnerMode}
         onWinnerRankChange={setCustomWinnerRank}
         onUnsupported={handleUnsupported}
-        onNotice={() => setNoticeOpen(true)}
+        onNotice={() => pushToast("공지 기능은 제거되었습니다.")}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />
-      <NoticeModal open={noticeOpen} onClose={() => setNoticeOpen(false)} />
       <ToastHost messages={toasts} />
       <footer className="copyright">© 2026. LuckySpin은 방송과 영상에서 자유롭게 사용할 수 있는 룰렛 도구입니다.</footer>
     </main>
