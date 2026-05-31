@@ -70,6 +70,18 @@
 
 ## 2026-05-31 Physics Stability Rework
 
+## 2026-05-31 Physics Elastic Kinematic Fix
+
+- 사용자가 원본 `https://lazygyu.github.io/roulette/` 대비 현재 구현이 너무 다르며 물리 탄성과 회전 막대 간섭이 없다고 지적했다.
+- 원본은 `box2d-wasm`의 kinematic body에 angular velocity를 넣고 world step에서 충돌을 처리한다. 현재 구현은 수동 적분으로 바뀌었고 `resolveEntityCollision`에서 `kinematic` entity를 즉시 제외한다.
+- 이번 결정은 전체 Box2D 이식이 아니라 현재 수동 충돌 해석에 kinematic box 충돌, 접점 표면 속도, stage restitution을 복구하는 것이다. 이유는 문제 지점이 좁고 기존 React lifecycle과 long-run 안정성 테스트를 유지할 수 있기 때문이다.
+- 성공 기준은 회전 막대와 구슬 충돌 시 접선 방향 속도가 생기고, restitution 1 entity가 벽보다 강하게 반발하며, 기존 goalY 진행 안정성 테스트가 계속 통과하는 것이다.
+- RED 확인 결과 `kinematic wheel transfers tangent velocity through collision`은 `vy=0.265`로 막대 충돌이 전혀 적용되지 않아 실패했고, `stage restitution preserves a strong rebound`는 `vy=-1.628`로 원본 restitution 1 체감보다 약해 실패했다.
+- 구현은 `kinematic` box를 충돌 해석에 포함하고, 접점의 회전 표면 속도 `omega x radius`를 상대속도에 넣는 방식으로 처리했다. stage restitution은 `props.restitution` 값을 최대 1.5까지 직접 반영한다.
+- 하단 게이트에서는 막대 아래쪽 재충돌에 붙는 문제가 있어 낙하 방향 룰렛에 맞게 kinematic box의 아래쪽 충돌은 통과시켰다. 대신 위쪽 접근 충돌과 접선 속도 전달은 유지한다.
+- `npm test`는 3개 파일 27개 테스트가 통과했고, `npm run build`도 통과했다. 로컬 브라우저 `http://127.0.0.1:5173/LuckySpin/`에서 시작 후 35초 대기했을 때 `1 / 6` 결과가 기록되고 console warning/error 0건을 확인했다.
+
+
 - 사용자가 여전히 벽을 통과하거나 벽에 붙었다가 날아가는 증상이 있다고 보고했다.
 - 이전 수정은 Matter.js rectangle segment를 튜닝한 것이어서 원본 Box2D edge fixture의 연속 충돌 특성을 복원하지 못했다.
 - 원본 `physics-box2d.ts`는 polyline을 한 body 안의 `b2EdgeShape.SetTwoSided` fixture 묶음으로 만든다. 현재 구현은 각 선분을 별도 얇은 rectangle body로 만들어 관절 틈, 모서리 침투, 순간 반발이 생길 수 있다.

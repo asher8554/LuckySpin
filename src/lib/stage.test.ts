@@ -11,7 +11,7 @@ import {
   removeMarbleFromWorld,
   shakeSlowMarbles,
 } from "./physics";
-import { wheelOfFortuneStage } from "./stage";
+import { wheelOfFortuneStage, type StageDef } from "./stage";
 import type { MarbleEntry } from "../types";
 
 describe("wheelOfFortuneStage", () => {
@@ -51,6 +51,69 @@ describe("stage based physics", () => {
 
     expect(wheel?.angle).not.toBe(0);
     expect(wheel?.bodies[0].angularVelocity).toBe(0);
+  });
+
+  it("kinematic wheel transfers tangent velocity through collision", () => {
+    const kinematicStage: StageDef = {
+      id: "wheel",
+      title: "kinematic collision test",
+      goalY: 40,
+      zoomY: 36,
+      entities: [
+        {
+          position: { x: 10, y: 10 },
+          type: "kinematic",
+          shape: { type: "box", width: 2, height: 0.1, rotation: 0 },
+          props: { density: 1, angularVelocity: 3.5, restitution: 0 },
+        },
+      ],
+    };
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, kinematicStage);
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 9, y: 9.75 });
+    Body.setVelocity(marble.body, { x: 0, y: 0 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const diagnostics = JSON.stringify({
+      x: marble.body.position.x,
+      y: marble.body.position.y,
+      vx: marble.body.velocity.x,
+      vy: marble.body.velocity.y,
+    });
+    expect(marble.body.velocity.y, diagnostics).toBeLessThan(-0.5);
+    expect(marble.body.velocity.x, diagnostics).toBeGreaterThan(0.05);
+  });
+
+  it("stage restitution preserves a strong rebound", () => {
+    const elasticStage: StageDef = {
+      id: "wheel",
+      title: "elastic collision test",
+      goalY: 40,
+      zoomY: 36,
+      entities: [
+        {
+          position: { x: 10, y: 10 },
+          type: "static",
+          shape: { type: "box", width: 1, height: 0.1, rotation: 0 },
+          props: { density: 1, angularVelocity: 0, restitution: 1 },
+        },
+      ],
+    };
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, elasticStage);
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 10, y: 9.75 });
+    Body.setVelocity(marble.body, { x: 0, y: 4 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const diagnostics = JSON.stringify({
+      y: marble.body.position.y,
+      vy: marble.body.velocity.y,
+    });
+    expect(marble.body.velocity.y, diagnostics).toBeLessThan(-3);
   });
 
   it("완료된 구슬은 world.marbles와 live order에서 제거된다", () => {

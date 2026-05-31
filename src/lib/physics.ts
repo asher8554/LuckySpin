@@ -60,8 +60,10 @@ const maxStepMs = 50;
 const collisionIterations = 3;
 const maxMarbleSpeed = 12;
 const wallRestitution = 0.03;
-const bouncePinRestitution = 0.45;
+const maxStageRestitution = 1.5;
 const airDamping = 0.12;
+const staticSurfaceFriction = 0.1;
+const kinematicSurfaceFriction = 0.25;
 
 const themeColors = {
   dark: {
@@ -221,14 +223,15 @@ export function shakeSlowMarbles(world: RouletteWorld, finishedIds = new Set<str
     }
 
     const targetX = nearGoal ? 15.55 : marble.body.position.x;
+    const targetPull = nearGoal ? 3.2 : 0.35;
     const xNudge =
       Math.sin(world.elapsedMs / 300 + marble.order) * 0.5 +
-      (targetX - marble.body.position.x) * (nearGoal ? 1.2 : 0.35);
+      (targetX - marble.body.position.x) * targetPull;
     const nextVelocity = {
       x: marble.body.velocity.x + xNudge / Math.max(marble.entry.weight, 1),
-      y: marble.body.velocity.y + (nearGoal ? 4 : 3),
+      y: marble.body.velocity.y + (nearGoal ? 5.5 : 3),
     };
-    clampVector(nextVelocity, maxMarbleSpeed * 0.45);
+    clampVector(nextVelocity, maxMarbleSpeed * (nearGoal ? 0.8 : 0.45));
     Body.setVelocity(marble.body, nextVelocity);
   }
 }
@@ -239,9 +242,6 @@ function resolveEntityCollision(
   state: StageBodyState,
 ) {
   const entity = state.entity;
-  if (entity.type === "kinematic") {
-    return;
-  }
 
   switch (entity.shape.type) {
     case "polyline":
@@ -260,7 +260,12 @@ function resolveEntityCollision(
       }
       break;
     case "box":
-      resolveBoxCollision(position, velocity, entity, entity.shape.rotation);
+      resolveBoxCollision(
+        position,
+        velocity,
+        entity,
+        entity.type === "kinematic" ? state.angle : entity.shape.rotation,
+      );
       break;
     case "circle":
       resolveCircleCollision(position, velocity, entity.position, entity.shape.radius, getEntityRestitution(entity));
@@ -315,10 +320,15 @@ function resolveBoxCollision(
   const cos = Math.cos(-angle);
   const sin = Math.sin(-angle);
   const local = rotatePoint(position.x - entity.position.x, position.y - entity.position.y, cos, sin);
+  if (entity.type === "kinematic" && local.y > entity.shape.height) {
+    return;
+  }
+
   const closest = {
     x: clamp(local.x, -entity.shape.width, entity.shape.width),
     y: clamp(local.y, -entity.shape.height, entity.shape.height),
   };
+  const contactLocal = { ...closest };
   let delta = { x: local.x - closest.x, y: local.y - closest.y };
   let distance = Math.hypot(delta.x, delta.y);
   let penetration = marbleRadius - distance;
@@ -344,7 +354,13 @@ function resolveBoxCollision(
   position.x += worldNormal.x * penetration;
   position.y += worldNormal.y * penetration;
 
-  applyCollisionVelocity(velocity, worldNormal, { x: 0, y: 0 }, getEntityRestitution(entity), 0.1);
+  applyCollisionVelocity(
+    velocity,
+    worldNormal,
+    getBoxSurfaceVelocity(entity, angle, contactLocal),
+    getEntityRestitution(entity),
+    entity.type === "kinematic" ? kinematicSurfaceFriction : staticSurfaceFriction,
+  );
 }
 
 function resolveCircleCollision(
@@ -423,7 +439,19 @@ function applyCollisionVelocity(
 }
 
 function getEntityRestitution(entity: StageEntity) {
-  return entity.props.restitution > 0 ? bouncePinRestitution : wallRestitution;
+  return entity.props.restitution > 0 ? clamp(entity.props.restitution, 0, maxStageRestitution) : wallRestitution;
+}
+
+function getBoxSurfaceVelocity(entity: StageEntity, angle: number, contactLocal: { x: number; y: number }) {
+  if (entity.type !== "kinematic" || entity.shape.type !== "box") {
+    return { x: 0, y: 0 };
+  }
+
+  const radius = rotatePoint(contactLocal.x, contactLocal.y, Math.cos(angle), Math.sin(angle));
+  return {
+    x: -entity.props.angularVelocity * radius.y,
+    y: entity.props.angularVelocity * radius.x,
+  };
 }
 
 function closestPointOnSegment(

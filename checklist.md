@@ -78,6 +78,17 @@
 
 ## Physics Stability Rework
 
+## Physics Elastic Kinematic Fix
+
+- [x] 회전 막대 충돌과 탄성 복구 계획을 문서화한다.
+- [x] kinematic 막대가 구슬에 접선 방향 속도를 주는 회귀 테스트를 추가한다.
+- [x] restitution 1 stage entity가 낮은 벽 탄성보다 크게 반발하는 테스트를 추가한다.
+- [x] `src/lib/physics.ts`에서 kinematic box 충돌과 surface velocity를 반영한다.
+- [x] `npm test`와 `npm run build`를 통과시킨다.
+- [x] 로컬 브라우저에서 막대 구간 충돌 체감을 확인한다.
+- [x] 의미 있는 단위로 커밋한다.
+
+
 - [x] 원본 Box2D edge fixture 방식과 현재 Matter.js segment 방식 차이를 확인한다.
 - [x] 벽 통과와 순간 발사를 재현하는 회귀 테스트를 추가한다.
 - [x] polyline 충돌을 틈 없는 circle-vs-segment 해석으로 교체한다.
