@@ -11,8 +11,22 @@ import {
   removeMarbleFromWorld,
   shakeSlowMarbles,
 } from "./physics";
-import { wheelOfFortuneStage, type StageDef } from "./stage";
-import type { MarbleEntry } from "../types";
+import { ROULETTE_STAGES, wheelOfFortuneStage, type StageDef } from "./stage";
+import type { MapId, MarbleEntry } from "../types";
+
+const originalStageExpectations: Array<{
+  id: MapId;
+  title: string;
+  goalY: number;
+  zoomY: number;
+  entities: number;
+  kinematic: number;
+}> = [
+  { id: "wheel", title: "Wheel of fortune", goalY: 111, zoomY: 106.75, entities: 46, kinematic: 6 },
+  { id: "bubble", title: "BubblePop", goalY: 83, zoomY: 78, entities: 59, kinematic: 9 },
+  { id: "jar", title: "Pot of greed", goalY: 111, zoomY: 110, entities: 32, kinematic: 20 },
+  { id: "night", title: "Yoru ni Kakeru", goalY: 248, zoomY: 234.5, entities: 288, kinematic: 21 },
+];
 
 describe("wheelOfFortuneStage", () => {
   it("원본 첫 맵의 goalY와 zoomY를 보존한다", () => {
@@ -24,6 +38,25 @@ describe("wheelOfFortuneStage", () => {
   it("원본 첫 맵의 지형 entity 개수를 유지한다", () => {
     expect(wheelOfFortuneStage.entities).toHaveLength(46);
     expect(wheelOfFortuneStage.entities.filter((entity) => entity.type === "kinematic")).toHaveLength(6);
+  });
+});
+
+describe("ROULETTE_STAGES", () => {
+  it("connects every shipped map to the original stage metadata", () => {
+    for (const expected of originalStageExpectations) {
+      const stage = ROULETTE_STAGES[expected.id];
+
+      expect(stage.id).toBe(expected.id);
+      expect(stage.title).toBe(expected.title);
+      expect(stage.goalY).toBe(expected.goalY);
+      expect(stage.zoomY).toBe(expected.zoomY);
+      expect(stage.entities).toHaveLength(expected.entities);
+      expect(stage.entities.filter((entity) => entity.type === "kinematic")).toHaveLength(expected.kinematic);
+    }
+  });
+
+  it("does not reuse wheel stage data for unfinished maps", () => {
+    expect(new Set(Object.values(ROULETTE_STAGES))).toHaveLength(originalStageExpectations.length);
   });
 });
 
@@ -51,6 +84,30 @@ describe("stage based physics", () => {
 
     expect(wheel?.angle).not.toBe(0);
     expect(wheel?.bodies[0].angularVelocity).toBe(0);
+  });
+
+  it("every shipped map creates a stable physics world", () => {
+    for (const stage of Object.values(ROULETTE_STAGES)) {
+      const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, stage);
+
+      for (let step = 0; step < 30; step += 1) {
+        advanceRouletteWorld(world, 16.6);
+      }
+
+      const marble = world.marbles[0];
+      const diagnostics = JSON.stringify({
+        stage: stage.id,
+        x: marble.body.position.x,
+        y: marble.body.position.y,
+        vx: marble.body.velocity.x,
+        vy: marble.body.velocity.y,
+      });
+      expect(Number.isFinite(marble.body.position.x), diagnostics).toBe(true);
+      expect(Number.isFinite(marble.body.position.y), diagnostics).toBe(true);
+      expect(Number.isFinite(marble.body.velocity.x), diagnostics).toBe(true);
+      expect(Number.isFinite(marble.body.velocity.y), diagnostics).toBe(true);
+      expect(world.entities.length).toBe(stage.entities.length);
+    }
   });
 
   it("kinematic wheel transfers tangent velocity through collision", () => {

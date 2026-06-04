@@ -5,9 +5,9 @@ export const DEFAULT_NAMES = "수박*2,키위*2,귤*2";
 
 export const ROULETTE_MAPS: Array<{ id: MapId; label: string; enabled: boolean }> = [
   { id: "wheel", label: "Wheel of fortune", enabled: true },
-  { id: "bubble", label: "BubblePop", enabled: false },
-  { id: "jar", label: "Pot of greed", enabled: false },
-  { id: "night", label: "Yoru ni Kakeru", enabled: false },
+  { id: "bubble", label: "BubblePop", enabled: true },
+  { id: "jar", label: "Pot of greed", enabled: true },
+  { id: "night", label: "Yoru ni Kakeru", enabled: true },
 ];
 
 const ENTRY_PATTERN = /^\s*([^/*]+?)\s*(?:\/(\d+))?\s*(?:\*(\d+))?\s*$/;

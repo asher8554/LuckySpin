@@ -139,3 +139,13 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA.
 - [x] Commit and deploy.
+
+## 2026-06-04 Remaining Maps
+
+- [x] Add failing tests proving every listed map is enabled and backed by its own stage data.
+- [x] Port the original BubblePop, Pot of greed, and Yoru ni Kakeru stage definitions.
+- [x] Make the map selector start all four maps without unsupported-map blocking.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA for the map selector.
+- [ ] Commit and deploy.

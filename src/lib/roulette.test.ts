@@ -5,8 +5,20 @@ import {
   clampWinnerRank,
   expandEntries,
   parseEntries,
+  ROULETTE_MAPS,
   shuffleEntries,
 } from "./roulette";
+
+describe("ROULETTE_MAPS", () => {
+  it("enables every shipped map", () => {
+    expect(ROULETTE_MAPS.map(({ id, enabled }) => [id, enabled])).toEqual([
+      ["wheel", true],
+      ["bubble", true],
+      ["jar", true],
+      ["night", true],
+    ]);
+  });
+});
 
 describe("parseEntries", () => {
   it("쉼표와 줄바꿈으로 구분한 이름을 기본 count와 weight로 파싱한다", () => {

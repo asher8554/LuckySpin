@@ -140,3 +140,14 @@
 - `npm test` passed 4 files and 33 tests. `npm run build` passed with bundles `assets/index-BSAX4Pk8.css` and `assets/index-BB_lIUlI.js`.
 - Pushed `ee8c1d1` to `origin/main`. GitHub Actions Pages run `26955025425` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-BB_lIUlI.js`. Live browser QA checked `녹화`, clicked `시작`, received `luckyspin-YYYYMMDD-HHMMSS.webm`, reached `1 / 6`, and had console warning/error 0.
+
+## 2026-06-04 Remaining Maps
+
+- User requested the remaining maps.
+- The original `.reference/lazygyu-roulette/src/data/maps.ts` already contains four stage definitions. Current React port only wires `Wheel of fortune`; `bubble`, `jar`, and `night` still point to the wheel stage and are disabled in `ROULETTE_MAPS`.
+- Scope is a data port plus selector enablement. Keep the current Matter.js physics engine and renderer, and avoid layout refactors.
+- Success criteria are tests proving every map is enabled and stage-backed, `npm test`, `npm run build`, and browser QA that selects each map without the unsupported-map toast.
+- Ported the original `BubblePop`, `Pot of greed`, and `Yoru ni Kakeru` stage data into `src/lib/stage.ts`, added stable named exports for each stage, and enabled all four `ROULETTE_MAPS` entries.
+- Added tests for enabled map options, original stage metadata, distinct stage objects, and short physics-world stability across every shipped map.
+- `npm test` passed 4 files and 37 tests. `npm run build` passed with bundle `assets/index-BoPpu8pZ.js`.
+- Local browser QA on `http://127.0.0.1:5174/LuckySpin/` selected and started `wheel`, `bubble`, `jar`, and `night`; every option was enabled, canvas rendered, unsupported-map toast 0, console warning/error 0.
