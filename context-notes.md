@@ -138,3 +138,5 @@
 - Added `useCanvasRecorder` to manage recording state, collect chunks, stop tracks, and download `luckyspin-YYYYMMDD-HHMMSS.webm`.
 - Browser QA on local `http://127.0.0.1:5174/LuckySpin/` passed. Desktop checked `녹화`, clicked `시작`, received `luckyspin-YYYYMMDD-HHMMSS.webm`, reached `1 / 6`, and had console warning/error 0. Mobile settings panel showed the `녹화` toggle and checked it with console warning/error 0.
 - `npm test` passed 4 files and 33 tests. `npm run build` passed with bundles `assets/index-BSAX4Pk8.css` and `assets/index-BB_lIUlI.js`.
+- Pushed `ee8c1d1` to `origin/main`. GitHub Actions Pages run `26955025425` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-BB_lIUlI.js`. Live browser QA checked `녹화`, clicked `시작`, received `luckyspin-YYYYMMDD-HHMMSS.webm`, reached `1 / 6`, and had console warning/error 0.

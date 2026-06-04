@@ -138,4 +138,4 @@
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
 - [x] Run browser QA.
-- [ ] Commit and deploy.
+- [x] Commit and deploy.
