@@ -92,3 +92,14 @@
 - 내부 joint endpoint cap 충돌을 제외하고 adjacent segment만 처리하게 바꿨다. stuck assist 주기는 600ms로 낮췄고, 직접 충돌 해석의 중력과 속도 상한을 조정해 30초 안에 첫 결과가 나오게 했다.
 - 로컬 QA는 desktop 1280x720과 mobile 390x844에서 각각 `1 / 6`까지 도달했고 console warning/error 0건이었다.
 - GitHub Pages 배포 뒤 `https://asher8554.github.io/LuckySpin/`에서 desktop 1280x720 QA를 다시 실행했다. 약 31.7초에 `1 / 6`까지 도달했고 console warning/error 0건이었다.
+
+## 2026-06-04 Wall Bounce Regression
+
+- User reported marbles stick to walls instead of rebounding.
+- Current `wallRestitution = 0.03` explains the symptom because normal velocity is almost removed after a wall collision.
+- Scope stays narrow. Add a wall-collision regression test first, then tune wall elasticity without changing stage layout or result collection.
+- Success criteria are `npm test`, `npm run build`, and a focused commit.
+- RED test failed with `vx=-0.1197611385007269` against the stage wall, proving the sticky wall behavior.
+- Raising `wallRestitution` to `0.6` made the new wall bounce test pass while preserving the existing long-run physics tests.
+- `npm test` passed 3 files and 28 tests. `npm run build` passed.
+- Local dev server ran on `http://127.0.0.1:5174/LuckySpin/` because port 5173 was already occupied. Playwright smoke QA clicked `시작`, saw the canvas continue rendering, and captured console warning/error 0 from the app.

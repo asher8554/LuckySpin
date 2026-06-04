@@ -116,6 +116,44 @@ describe("stage based physics", () => {
     expect(marble.body.velocity.y, diagnostics).toBeLessThan(-3);
   });
 
+  it("stage wall collision rebounds with visible elasticity", () => {
+    const wallStage: StageDef = {
+      id: "wheel",
+      title: "wall bounce test",
+      goalY: 40,
+      zoomY: 36,
+      entities: [
+        {
+          position: { x: 0, y: 0 },
+          type: "static",
+          shape: {
+            type: "polyline",
+            points: [
+              [5, 0],
+              [5, 5],
+            ],
+            rotation: 0,
+          },
+          props: { density: 1, angularVelocity: 0, restitution: 0 },
+        },
+      ],
+    };
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, wallStage);
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 4.78, y: 2 });
+    Body.setVelocity(marble.body, { x: 4, y: 0 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const diagnostics = JSON.stringify({
+      x: marble.body.position.x,
+      vx: marble.body.velocity.x,
+    });
+    expect(marble.body.position.x, diagnostics).toBeLessThan(5);
+    expect(marble.body.velocity.x, diagnostics).toBeLessThan(-2);
+  });
+
   it("완료된 구슬은 world.marbles와 live order에서 제거된다", () => {
     const world = createRouletteWorld(entries, { width: 1280, height: 720 });
     const [marble] = world.marbles;

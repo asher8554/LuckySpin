@@ -95,3 +95,13 @@
 - [x] kinematic wheel은 직접 충돌에서 제외하고 시각 회전으로만 유지한다.
 - [x] `npm test`, `npm run build`, 브라우저 검증을 통과시킨다.
 - [x] Pages 배포 검증을 통과시킨다.
+
+## 2026-06-04 Wall Bounce Regression
+
+- [x] Add a regression test for marble bounce against a stage wall.
+- [x] Verify the new test fails with the current low wall restitution.
+- [x] Tune only wall collision elasticity.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run Playwright smoke QA on the running app.
+- [x] Commit the focused physics fix.
