@@ -148,4 +148,4 @@
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
 - [x] Run browser QA for the map selector.
-- [ ] Commit and deploy.
+- [x] Commit and deploy.
