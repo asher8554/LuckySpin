@@ -1,9 +1,10 @@
 // LuckySpin 앱의 상태와 룰렛 화면을 연결한다.
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ControlPanel } from "./components/ControlPanel";
 import { RankingBoard } from "./components/RankingBoard";
 import { RouletteCanvas } from "./components/RouletteCanvas";
 import { ToastHost } from "./components/ToastHost";
+import { useCanvasRecorder } from "./hooks/useCanvasRecorder";
 import { clampWinnerRank, expandEntries, parseEntries, ROULETTE_MAPS, shuffleEntries } from "./lib/roulette";
 import { loadNames, loadTheme, saveNames, saveTheme } from "./lib/storage";
 import type {
@@ -32,6 +33,7 @@ export default function App() {
   const [runEntries, setRunEntries] = useState<MarbleEntry[]>([]);
   const [liveEntries, setLiveEntries] = useState<MarbleEntry[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
 
   const parsedEntries = useMemo(() => parseEntries(names), [names]);
   const expandedEntries = useMemo(() => expandEntries(parsedEntries), [parsedEntries]);
@@ -56,6 +58,16 @@ export default function App() {
       setToasts((current) => current.filter((item) => item.id !== toast.id));
     }, 1800);
   }, []);
+  const {
+    recordingActive,
+    recordingEnabled,
+    setRecordingEnabled,
+    startRecording,
+    stopRecording,
+  } = useCanvasRecorder({
+    getCanvas: () => canvasElementRef.current,
+    onMessage: pushToast,
+  });
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -102,11 +114,14 @@ export default function App() {
     }
 
     const nextEntries = shuffleEntries(expandedEntries);
+    if (recordingEnabled) {
+      startRecording();
+    }
     setRunEntries(nextEntries);
     setLiveEntries(nextEntries);
     setResults([]);
     setStatus("running");
-  }, [expandedEntries, pushToast, status]);
+  }, [expandedEntries, pushToast, recordingEnabled, startRecording, status]);
 
   const handleMapChange = useCallback(
     (nextMapId: MapId) => {
@@ -136,10 +151,15 @@ export default function App() {
     setLiveEntries(entries);
   }, []);
 
+  const handleCanvasReady = useCallback((canvas: HTMLCanvasElement | null) => {
+    canvasElementRef.current = canvas;
+  }, []);
+
   const handleComplete = useCallback(() => {
+    stopRecording();
     setStatus("finished");
     window.setTimeout(() => setStatus("idle"), 1200);
-  }, []);
+  }, [stopRecording]);
 
   return (
     <main className="roulette-app">
@@ -154,6 +174,7 @@ export default function App() {
         onResult={handleResult}
         onComplete={handleComplete}
         onLiveRank={handleLiveRank}
+        onCanvasReady={handleCanvasReady}
       />
       <RankingBoard total={total} results={results} pendingEntries={pendingEntries} selectedRank={winnerRank} />
       <ControlPanel
@@ -162,6 +183,8 @@ export default function App() {
         theme={theme}
         winnerMode={winnerMode}
         winnerRank={winnerRank}
+        recordingActive={recordingActive}
+        recordingEnabled={recordingEnabled}
         total={total}
         status={status}
         collapsed={collapsed}
@@ -172,6 +195,7 @@ export default function App() {
         onThemeChange={setTheme}
         onWinnerModeChange={setWinnerMode}
         onWinnerRankChange={setCustomWinnerRank}
+        onRecordingChange={setRecordingEnabled}
         onUnsupported={handleUnsupported}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />

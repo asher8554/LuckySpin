@@ -127,3 +127,15 @@
 - [x] Run `npm run build`.
 - [x] Run local browser QA.
 - [x] Push/deploy if the fix is only local.
+
+## 2026-06-04 Recording Feature
+
+- [x] Add recording helper tests first.
+- [x] Implement canvas recording with `MediaRecorder`.
+- [x] Connect the existing `녹화` toggle to recording mode.
+- [x] Auto-start recording when roulette starts and auto-download when the run completes.
+- [x] Show Korean toasts for armed, started, saved, and unsupported states.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA.
+- [ ] Commit and deploy.

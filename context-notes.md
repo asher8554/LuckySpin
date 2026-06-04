@@ -127,3 +127,14 @@
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. 12-second smoke and 45-second long run had app console warning/error 0, and long run reached `1 / 6`.
 - Pushed `ce0b2ca` to `origin/main`. GitHub Actions Pages run `26954079463` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` now loads `assets/index-Dbo7DZ1O.js`. Live browser QA passed: 12-second smoke had console warning/error 0, and 45-second long run reached `1 / 6` with console warning/error 0.
+
+## 2026-06-04 Recording Feature
+
+- User requested the recording feature.
+- Existing UI already has a `녹화` toggle, but it only calls the unsupported-feature toast.
+- Scope is browser-local canvas recording. Use `canvas.captureStream()` and `MediaRecorder`, then download a `.webm` file when the run completes.
+- The toggle should arm recording before the run. `시작` starts recording automatically, and roulette completion stops and downloads the recording automatically. This avoids needing the hidden control panel during the running state.
+- Added `src/lib/recording.ts` for MIME selection and stable UTC-based `.webm` file names.
+- Added `useCanvasRecorder` to manage recording state, collect chunks, stop tracks, and download `luckyspin-YYYYMMDD-HHMMSS.webm`.
+- Browser QA on local `http://127.0.0.1:5174/LuckySpin/` passed. Desktop checked `녹화`, clicked `시작`, received `luckyspin-YYYYMMDD-HHMMSS.webm`, reached `1 / 6`, and had console warning/error 0. Mobile settings panel showed the `녹화` toggle and checked it with console warning/error 0.
+- `npm test` passed 4 files and 33 tests. `npm run build` passed with bundles `assets/index-BSAX4Pk8.css` and `assets/index-BB_lIUlI.js`.

@@ -21,6 +21,8 @@ interface ControlPanelProps {
   theme: ThemeMode;
   winnerMode: WinnerMode;
   winnerRank: number;
+  recordingActive: boolean;
+  recordingEnabled: boolean;
   total: number;
   status: RouletteStatus;
   collapsed: boolean;
@@ -31,6 +33,7 @@ interface ControlPanelProps {
   onThemeChange: (theme: ThemeMode) => void;
   onWinnerModeChange: (mode: WinnerMode) => void;
   onWinnerRankChange: (rank: number) => void;
+  onRecordingChange: (enabled: boolean) => void;
   onUnsupported: (feature: string) => void;
   onToggleCollapsed: () => void;
 }
@@ -41,6 +44,8 @@ export function ControlPanel({
   theme,
   winnerMode,
   winnerRank,
+  recordingActive,
+  recordingEnabled,
   total,
   status,
   collapsed,
@@ -51,6 +56,7 @@ export function ControlPanel({
   onThemeChange,
   onWinnerModeChange,
   onWinnerRankChange,
+  onRecordingChange,
   onUnsupported,
   onToggleCollapsed,
 }: ControlPanelProps) {
@@ -109,12 +115,17 @@ export function ControlPanel({
         </label>
 
         <div className="settings-row two-columns">
-          <label onClick={handleUnsupportedToggle("녹화")}>
+          <label className={recordingActive ? "recording-active" : ""}>
             <span>
               <Video size={24} />
               녹화
             </span>
-            <input type="checkbox" checked={false} onChange={() => undefined} />
+            <input
+              aria-label="녹화"
+              type="checkbox"
+              checked={recordingEnabled}
+              onChange={(event) => onRecordingChange(event.target.checked)}
+            />
           </label>
           <label onClick={handleUnsupportedToggle("스킬")}>
             <span>

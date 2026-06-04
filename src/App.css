@@ -235,6 +235,17 @@ button:disabled {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+  min-width: 0;
+}
+
+.two-columns label.recording-active {
+  color: #76f4ff;
+  text-shadow: 0 0 8px rgba(34, 247, 239, 0.75);
+}
+
+.two-columns label > span {
+  min-width: 0;
+  white-space: nowrap;
 }
 
 .winner-group {
