@@ -126,4 +126,4 @@
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
 - [x] Run local browser QA.
-- [ ] Push/deploy if the fix is only local.
+- [x] Push/deploy if the fix is only local.

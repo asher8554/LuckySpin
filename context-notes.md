@@ -125,3 +125,5 @@
 - Implementation added `wallSeparationSpeed = 3` for polyline wall collisions only. This gives an arcade-style minimum separation impulse when a marble is touching a wall but has little normal impact speed.
 - `npm test` passed 3 files and 30 tests. `npm run build` passed with bundle `assets/index-Dbo7DZ1O.js`.
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. 12-second smoke and 45-second long run had app console warning/error 0, and long run reached `1 / 6`.
+- Pushed `ce0b2ca` to `origin/main`. GitHub Actions Pages run `26954079463` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` now loads `assets/index-Dbo7DZ1O.js`. Live browser QA passed: 12-second smoke had console warning/error 0, and 45-second long run reached `1 / 6` with console warning/error 0.
