@@ -86,6 +86,37 @@ describe("stage based physics", () => {
     expect(marble.body.velocity.x, diagnostics).toBeGreaterThan(0.05);
   });
 
+  it("bottom kinematic spinner detects contact from below", () => {
+    const bottomSpinnerStage: StageDef = {
+      id: "wheel",
+      title: "bottom spinner contact test",
+      goalY: 120,
+      zoomY: 106.75,
+      entities: [
+        {
+          position: { x: 14, y: 106.75 },
+          type: "kinematic",
+          shape: { type: "box", width: 2, height: 0.1, rotation: 0 },
+          props: { density: 1, angularVelocity: -1.2, restitution: 0 },
+        },
+      ],
+    };
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, bottomSpinnerStage);
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 14, y: 106.99 });
+    Body.setVelocity(marble.body, { x: 0, y: -3 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const diagnostics = JSON.stringify({
+      y: marble.body.position.y,
+      vy: marble.body.velocity.y,
+    });
+    expect(marble.body.position.y, diagnostics).toBeGreaterThan(106.95);
+    expect(marble.body.velocity.y, diagnostics).toBeGreaterThan(1.5);
+  });
+
   it("stage restitution preserves a strong rebound", () => {
     const elasticStage: StageDef = {
       id: "wheel",
@@ -151,7 +182,7 @@ describe("stage based physics", () => {
       vx: marble.body.velocity.x,
     });
     expect(marble.body.position.x, diagnostics).toBeLessThan(5);
-    expect(marble.body.velocity.x, diagnostics).toBeLessThan(-2);
+    expect(marble.body.velocity.x, diagnostics).toBeLessThan(-3);
   });
 
   it("완료된 구슬은 world.marbles와 live order에서 제거된다", () => {

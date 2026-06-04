@@ -103,3 +103,14 @@
 - Raising `wallRestitution` to `0.6` made the new wall bounce test pass while preserving the existing long-run physics tests.
 - `npm test` passed 3 files and 28 tests. `npm run build` passed.
 - Local dev server ran on `http://127.0.0.1:5174/LuckySpin/` because port 5173 was already occupied. Playwright smoke QA clicked `시작`, saw the canvas continue rendering, and captured console warning/error 0 from the app.
+
+## 2026-06-04 Bottom Spinner Contact Regression
+
+- User reported elasticity is still wrong and the bottom rotating object does not physically detect contact.
+- Recent change `wallRestitution = 0.6` improved the previous sticky-wall test, but that test only required rebound from `vx=4` to below `vx=-2`, which may still feel weak.
+- Current `resolveBoxCollision` skips every kinematic box collision when `local.y > entity.shape.height`. That makes the bottom spinner one-sided and prevents contact when a marble reaches it from below or rides along the lower side.
+- Root-cause tests should prove stronger wall rebound and two-sided bottom spinner contact before implementation.
+- RED confirmed both issues. Bottom spinner from below continued upward with `vy=-2.7287589726926456`, and wall rebound from `vx=4` only returned `vx=-2.3952227700145485`.
+- Implementation raised `wallRestitution` from `0.6` to `0.85` and removed the one-sided kinematic box skip.
+- `npm test` passed 3 files and 29 tests. `npm run build` passed.
+- Browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. Short smoke clicked `시작` with canvas visible and app console warning/error 0. Long smoke reached `1 / 6` after 42 seconds with app console warning/error 0.

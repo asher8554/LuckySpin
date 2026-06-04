@@ -105,3 +105,14 @@
 - [x] Run `npm run build`.
 - [x] Run Playwright smoke QA on the running app.
 - [x] Commit the focused physics fix.
+
+## 2026-06-04 Bottom Spinner Contact Regression
+
+- [x] Add a stronger regression test for visible wall rebound.
+- [x] Add a regression test for bottom kinematic spinner contact from below.
+- [x] Verify both tests fail before implementation.
+- [x] Fix only the confirmed collision behavior.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA on the running app.
+- [x] Commit the focused physics fix.

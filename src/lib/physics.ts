@@ -59,7 +59,7 @@ const fixedStepMs = 1000 / 240;
 const maxStepMs = 50;
 const collisionIterations = 3;
 const maxMarbleSpeed = 12;
-const wallRestitution = 0.6;
+const wallRestitution = 0.85;
 const maxStageRestitution = 1.5;
 const airDamping = 0.12;
 const staticSurfaceFriction = 0.1;
@@ -320,9 +320,6 @@ function resolveBoxCollision(
   const cos = Math.cos(-angle);
   const sin = Math.sin(-angle);
   const local = rotatePoint(position.x - entity.position.x, position.y - entity.position.y, cos, sin);
-  if (entity.type === "kinematic" && local.y > entity.shape.height) {
-    return;
-  }
 
   const closest = {
     x: clamp(local.x, -entity.shape.width, entity.shape.width),
