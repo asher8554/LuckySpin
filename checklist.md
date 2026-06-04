@@ -116,3 +116,14 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA on the running app.
 - [x] Commit the focused physics fix.
+
+## 2026-06-04 Sloped Wall Bounce Regression
+
+- [x] Compare deployed Pages build against local latest.
+- [x] Add a regression test for rebound away from a sloped wall.
+- [x] Verify the test fails before implementation.
+- [x] Fix only the confirmed slope-wall collision behavior.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run local browser QA.
+- [ ] Push/deploy if the fix is only local.

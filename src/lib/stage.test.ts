@@ -185,6 +185,46 @@ describe("stage based physics", () => {
     expect(marble.body.velocity.x, diagnostics).toBeLessThan(-3);
   });
 
+  it("sloped wall contact pushes a sliding marble away from the wall", () => {
+    const slopedWallStage: StageDef = {
+      id: "wheel",
+      title: "sloped wall bounce test",
+      goalY: 40,
+      zoomY: 36,
+      entities: [
+        {
+          position: { x: 0, y: 0 },
+          type: "static",
+          shape: {
+            type: "polyline",
+            points: [
+              [5, 5],
+              [10, 10],
+            ],
+            rotation: 0,
+          },
+          props: { density: 1, angularVelocity: 0, restitution: 0 },
+        },
+      ],
+    };
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, slopedWallStage);
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 7, y: 6.78 });
+    Body.setVelocity(marble.body, { x: 3, y: 3 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const diagnostics = JSON.stringify({
+      x: marble.body.position.x,
+      y: marble.body.position.y,
+      vx: marble.body.velocity.x,
+      vy: marble.body.velocity.y,
+    });
+    expect(marble.body.velocity.x, diagnostics).toBeGreaterThan(4);
+    expect(marble.body.velocity.y, diagnostics).toBeLessThan(2);
+  });
+
   it("완료된 구슬은 world.marbles와 live order에서 제거된다", () => {
     const world = createRouletteWorld(entries, { width: 1280, height: 720 });
     const [marble] = world.marbles;

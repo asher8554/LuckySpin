@@ -114,3 +114,14 @@
 - Implementation raised `wallRestitution` from `0.6` to `0.85` and removed the one-sided kinematic box skip.
 - `npm test` passed 3 files and 29 tests. `npm run build` passed.
 - Browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. Short smoke clicked `시작` with canvas visible and app console warning/error 0. Long smoke reached `1 / 6` after 42 seconds with app console warning/error 0.
+
+## 2026-06-04 Sloped Wall Bounce Regression
+
+- User checked `https://asher8554.github.io/LuckySpin/` and reported marbles flow down walls instead of bouncing.
+- Local `main` is ahead of `origin/main` by 3 commits, so the deployed Pages build is stale relative to recent wall/spinner fixes.
+- Live Pages currently loads `assets/index-CBP-3iZr.js`, while local dev serves current source. Stale deploy explains part of the live mismatch.
+- Separate root cause remains possible: existing wall tests cover vertical polyline bounce, not a sloped wall where gravity can keep the marble sliding along the tangent after contact.
+- RED confirmed the slope issue locally. A marble already touching a 45-degree wall and moving along the tangent kept sliding with `vx=2.25987877766247`, `vy=2.2461156426936117`.
+- Implementation added `wallSeparationSpeed = 3` for polyline wall collisions only. This gives an arcade-style minimum separation impulse when a marble is touching a wall but has little normal impact speed.
+- `npm test` passed 3 files and 30 tests. `npm run build` passed with bundle `assets/index-Dbo7DZ1O.js`.
+- Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. 12-second smoke and 45-second long run had app console warning/error 0, and long run reached `1 / 6`.

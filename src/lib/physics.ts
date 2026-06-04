@@ -60,6 +60,7 @@ const maxStepMs = 50;
 const collisionIterations = 3;
 const maxMarbleSpeed = 12;
 const wallRestitution = 0.85;
+const wallSeparationSpeed = 3;
 const maxStageRestitution = 1.5;
 const airDamping = 0.12;
 const staticSurfaceFriction = 0.1;
@@ -304,7 +305,7 @@ function resolveSegmentCollision(
 
   position.x += normal.x * (marbleRadius - distance);
   position.y += normal.y * (marbleRadius - distance);
-  applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.08);
+  applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.08, wallSeparationSpeed);
 }
 
 function resolveBoxCollision(
@@ -413,6 +414,7 @@ function applyCollisionVelocity(
   surfaceVelocity: { x: number; y: number },
   restitution: number,
   friction: number,
+  minSeparationSpeed = 0,
 ) {
   const relative = {
     x: velocity.x - surfaceVelocity.x,
@@ -420,9 +422,11 @@ function applyCollisionVelocity(
   };
   const normalSpeed = dot(relative, normal);
 
-  if (normalSpeed < 0) {
-    velocity.x -= (1 + restitution) * normalSpeed * normal.x;
-    velocity.y -= (1 + restitution) * normalSpeed * normal.y;
+  if (normalSpeed < minSeparationSpeed) {
+    const targetNormalSpeed = Math.max(-normalSpeed * restitution, minSeparationSpeed);
+    const normalDelta = targetNormalSpeed - normalSpeed;
+    velocity.x += normalDelta * normal.x;
+    velocity.y += normalDelta * normal.y;
 
     const tangent = {
       x: relative.x - normalSpeed * normal.x,
