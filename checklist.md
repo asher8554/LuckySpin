@@ -178,4 +178,4 @@
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
 - [x] Run browser QA for skill activation.
-- [ ] Commit and deploy.
+- [x] Commit and deploy.

@@ -191,3 +191,5 @@
 - The `스킬 활성화` checkbox now stores real app state and passes it into the roulette physics hook. The generic unsupported toast path remains only for shop.
 - `npm test` passed 5 files and 44 tests. `npm run build` passed with bundle `assets/index-CqiKKije.js`.
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. It checked `스킬 활성화`, saw no unsupported toast, started a weighted run, detected 387 skill ring draw calls, saw canvas motion, and had console warning/error 0.
+- Pushed `c93e083` to `origin/main`. GitHub Actions Pages run `27012857791` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-CqiKKije.js`. Live browser QA checked `스킬 활성화`, saw no unsupported toast, started a weighted run, detected 387 skill ring draw calls, saw canvas motion, and had console warning/error 0.
