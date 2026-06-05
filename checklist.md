@@ -198,4 +198,4 @@
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
 - [x] Run Browser QA for the number-input flow.
-- [ ] Commit and deploy.
+- [x] Commit and deploy.

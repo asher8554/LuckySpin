@@ -222,3 +222,5 @@
 - `npm run build` passed with bundle `assets/index-C8JmRPNy.js`.
 - Browser plugin reached the page and confirmed the placeholder, but its textarea input path failed because the virtual clipboard is unavailable and key-based selection did not clear the stored names.
 - Playwright fallback QA on `http://127.0.0.1:5174/LuckySpin/` passed. It set the saved name input to `4`, reloaded, confirmed `참가자 1` through `참가자 4`, saw `0 / 4`, started the roulette, kept generated names visible, and had console warning/error 0.
+- Pushed `848793b` to `origin/main`. GitHub Actions Pages run `27014561003` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-C8JmRPNy.js`.
