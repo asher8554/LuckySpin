@@ -149,3 +149,12 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA for the map selector.
 - [x] Commit and deploy.
+
+## 2026-06-05 Map Preview Switch
+
+- [x] Add a failing test for idle preview drawing the selected map stage.
+- [x] Pass the selected map stage into idle canvas rendering.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA for map switching before start.
+- [ ] Commit and deploy.

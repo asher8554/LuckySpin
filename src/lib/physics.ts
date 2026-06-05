@@ -48,6 +48,7 @@ interface SceneState {
   entries: MarbleEntry[];
   results: RouletteResult[];
   selectedRank: number;
+  stage?: StageDef;
   winner?: RouletteResult;
 }
 
@@ -554,7 +555,7 @@ export function drawRouletteScene(
   scene: SceneState,
 ) {
   const colors = themeColors[theme];
-  const stage = world?.stage ?? wheelOfFortuneStage;
+  const stage = world?.stage ?? scene.stage ?? wheelOfFortuneStage;
   const camera = world?.camera ?? createPreviewCamera(size);
 
   context.clearRect(0, 0, size.width, size.height);

@@ -75,9 +75,10 @@ export function useRoulettePhysics({
       entries,
       results,
       selectedRank: winnerRank,
+      stage: getStageForMap(mapId),
       winner,
     });
-  }, [entries, results, size, theme, winner, winnerRank]);
+  }, [entries, mapId, results, size, theme, winner, winnerRank]);
 
   const cleanupWorld = useCallback(() => {
     if (frameRef.current !== null) {

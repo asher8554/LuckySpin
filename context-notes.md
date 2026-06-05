@@ -153,3 +153,13 @@
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` selected and started `wheel`, `bubble`, `jar`, and `night`; every option was enabled, canvas rendered, unsupported-map toast 0, console warning/error 0.
 - Pushed `4f6e7c4` to `origin/main`. GitHub Actions Pages run `26956381645` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-BoPpu8pZ.js`. Live browser QA selected and started all four maps; every option was enabled, canvas rendered, unsupported-map toast 0, console warning/error 0.
+
+## 2026-06-05 Map Preview Switch
+
+- User reported that changing the map does not update the canvas until pressing start.
+- Root-cause hypothesis: idle rendering calls `drawRouletteScene` with `worldRef.current === null`, and `drawRouletteScene` falls back to `wheelOfFortuneStage` because the selected `mapId` stage is not passed into the preview scene.
+- Success criteria are a RED test for null-world preview stage selection, `npm test`, `npm run build`, and browser QA proving map selection changes the visible canvas before start.
+- RED confirmed the issue. Passing `ROULETTE_STAGES.bubble` into a null-world preview still produced 0 circle draw calls because `drawRouletteScene` ignored the selected preview stage.
+- Implementation added optional `scene.stage` fallback support in `drawRouletteScene` and passes `getStageForMap(mapId)` from `useRoulettePhysics` while idle.
+- `npm test` passed 4 files and 38 tests. `npm run build` passed with bundle `assets/index-CxD5splF.js`.
+- Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. Desktop changed wheel to bubble and bubble to night before start with different canvas hashes, status still idle, unsupported toast 0, console warning/error 0. Mobile changed wheel to jar after opening settings with the same checks.

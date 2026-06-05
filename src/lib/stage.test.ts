@@ -1,11 +1,12 @@
 // 원본 맵 데이터와 원본형 구슬 배치 계산을 검증한다.
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { Body } from "matter-js";
 
 import {
   advanceRouletteWorld,
   createRouletteWorld,
+  drawRouletteScene,
   getLiveMarbleOrder,
   getRouletteSpawnPosition,
   removeMarbleFromWorld,
@@ -27,6 +28,25 @@ const originalStageExpectations: Array<{
   { id: "jar", title: "Pot of greed", goalY: 111, zoomY: 110, entities: 32, kinematic: 20 },
   { id: "night", title: "Yoru ni Kakeru", goalY: 248, zoomY: 234.5, entities: 288, kinematic: 21 },
 ];
+
+function createCanvasContextStub() {
+  const methods: Record<PropertyKey, unknown> = {
+    measureText: vi.fn(() => ({ width: 0 })),
+  };
+
+  return new Proxy(methods, {
+    get(target, property) {
+      if (!(property in target)) {
+        target[property] = vi.fn();
+      }
+      return target[property];
+    },
+    set(target, property, value) {
+      target[property] = value;
+      return true;
+    },
+  }) as unknown as CanvasRenderingContext2D & { arc: ReturnType<typeof vi.fn> };
+}
 
 describe("wheelOfFortuneStage", () => {
   it("원본 첫 맵의 goalY와 zoomY를 보존한다", () => {
@@ -57,6 +77,20 @@ describe("ROULETTE_STAGES", () => {
 
   it("does not reuse wheel stage data for unfinished maps", () => {
     expect(new Set(Object.values(ROULETTE_STAGES))).toHaveLength(originalStageExpectations.length);
+  });
+
+  it("draws the selected map stage in the idle preview", () => {
+    const context = createCanvasContextStub();
+    const scene: Parameters<typeof drawRouletteScene>[4] = {
+      entries: [],
+      results: [],
+      selectedRank: 1,
+      stage: ROULETTE_STAGES.bubble,
+    };
+
+    drawRouletteScene(context, null, { width: 1280, height: 720 }, "dark", scene);
+
+    expect(context.arc.mock.calls.length).toBeGreaterThan(0);
   });
 });
 
