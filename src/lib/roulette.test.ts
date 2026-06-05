@@ -21,6 +21,15 @@ describe("ROULETTE_MAPS", () => {
 });
 
 describe("parseEntries", () => {
+  it("generates participant names when the whole input is a headcount", () => {
+    expect(parseEntries("4")).toEqual([
+      { name: "참가자 1", count: 1, weight: 1 },
+      { name: "참가자 2", count: 1, weight: 1 },
+      { name: "참가자 3", count: 1, weight: 1 },
+      { name: "참가자 4", count: 1, weight: 1 },
+    ]);
+  });
+
   it("쉼표와 줄바꿈으로 구분한 이름을 기본 count와 weight로 파싱한다", () => {
     expect(parseEntries("수박, 키위\n귤")).toEqual([
       { name: "수박", count: 1, weight: 1 },

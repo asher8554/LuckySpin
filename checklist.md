@@ -189,3 +189,13 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA for visible marble interaction.
 - [x] Commit and deploy.
+
+## 2026-06-05 Headcount Name Generation
+
+- [x] Add a failing test for number-only name input generating participant names.
+- [x] Generate `참가자 N` entries from a positive integer input.
+- [x] Update the name input placeholder so the shortcut is discoverable.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run Browser QA for the number-input flow.
+- [ ] Commit and deploy.

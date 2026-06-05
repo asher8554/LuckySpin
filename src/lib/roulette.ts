@@ -11,6 +11,7 @@ export const ROULETTE_MAPS: Array<{ id: MapId; label: string; enabled: boolean }
 ];
 
 const ENTRY_PATTERN = /^\s*([^/*]+?)\s*(?:\/(\d+))?\s*(?:\*(\d+))?\s*$/;
+const HEADCOUNT_PATTERN = /^\s*(\d+)\s*$/;
 
 function safePositiveInteger(value: string | undefined, fallback: number) {
   if (!value) {
@@ -22,6 +23,16 @@ function safePositiveInteger(value: string | undefined, fallback: number) {
 }
 
 export function parseEntries(input: string): ParsedEntry[] {
+  const headcountMatch = input.match(HEADCOUNT_PATTERN);
+  if (headcountMatch) {
+    const total = safePositiveInteger(headcountMatch[1], 0);
+    return Array.from({ length: total }, (_, index) => ({
+      name: `참가자 ${index + 1}`,
+      count: 1,
+      weight: 1,
+    }));
+  }
+
   return input
     .split(/[,\r\n]+/g)
     .map((token) => token.trim())

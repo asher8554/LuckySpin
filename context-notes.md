@@ -208,3 +208,17 @@
 - Browser plugin QA on `http://127.0.0.1:5174/LuckySpin/` passed. It loaded the app, filled 8 marble names, clicked start, saw screenshot hash change from `531b1f34` to `f374af0b`, kept one canvas visible, and had console warning/error 0.
 - Pushed `407f301` to `origin/main`. GitHub Actions Pages run `27013748400` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-Bu5-EonE.js`.
+
+## 2026-06-05 Headcount Name Generation
+
+- User requested a feature that automatically generates names when a headcount is entered.
+- Current name parsing treats a number-only input like `8` as one participant named `8`.
+- Scope is the smallest compatible behavior: when the names textarea contains only a positive integer, parse it as `참가자 1` through `참가자 N`. Existing comma, newline, `/weight`, and `*count` syntax remains unchanged.
+- Success criteria are a RED parser test, updated placeholder text, `npm test`, `npm run build`, Browser QA proving `4` creates four visible participants, then commit and deploy.
+- RED confirmed the existing behavior. `parseEntries("4")` returned one entry named `"4"` instead of four generated participants.
+- Implementation adds a number-only `HEADCOUNT_PATTERN` branch in `parseEntries` and updates the textarea placeholder to mention headcount input.
+- Targeted `npm test -- src/lib/roulette.test.ts` passed 2 files and 16 tests after the fix.
+- `npm test` passed 5 files and 46 tests.
+- `npm run build` passed with bundle `assets/index-C8JmRPNy.js`.
+- Browser plugin reached the page and confirmed the placeholder, but its textarea input path failed because the virtual clipboard is unavailable and key-based selection did not clear the stored names.
+- Playwright fallback QA on `http://127.0.0.1:5174/LuckySpin/` passed. It set the saved name input to `4`, reloaded, confirmed `참가자 1` through `참가자 4`, saw `0 / 4`, started the roulette, kept generated names visible, and had console warning/error 0.

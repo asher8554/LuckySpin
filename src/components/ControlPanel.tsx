@@ -78,7 +78,7 @@ export function ControlPanel({
         <textarea
           aria-label="이름 입력"
           value={names}
-          placeholder="이름들을 쉼표나 엔터로 구분해서 넣어주세요"
+          placeholder="이름들을 쉼표나 엔터로 구분하거나 인원수만 입력하세요"
           onChange={(event) => onNamesChange(event.target.value)}
         />
         <div className="action-row">
