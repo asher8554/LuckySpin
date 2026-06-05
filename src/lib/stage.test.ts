@@ -48,6 +48,53 @@ function createCanvasContextStub() {
   }) as unknown as CanvasRenderingContext2D & { arc: ReturnType<typeof vi.fn> };
 }
 
+function getPolylineXAtY(points: Array<[number, number]>, y: number) {
+  const xs: number[] = [];
+
+  for (let index = 0; index < points.length - 1; index += 1) {
+    const [x1, y1] = points[index];
+    const [x2, y2] = points[index + 1];
+    if ((y < Math.min(y1, y2) || y > Math.max(y1, y2)) && y1 !== y2) {
+      continue;
+    }
+    if (y1 === y2) {
+      if (Math.abs(y - y1) < 0.000001) {
+        xs.push(x1, x2);
+      }
+      continue;
+    }
+    const ratio = (y - y1) / (y2 - y1);
+    if (ratio >= 0 && ratio <= 1) {
+      xs.push(x1 + (x2 - x1) * ratio);
+    }
+  }
+
+  return xs;
+}
+
+function getPotOuterBoundsAt(y: number) {
+  const stage = ROULETTE_STAGES.jar;
+  const leftWallIndexes = [0, 6, 4];
+  const rightWallIndexes = [2, 7, 5];
+  const leftXs = leftWallIndexes.flatMap((index) => {
+    const shape = stage.entities[index].shape;
+    return shape.type === "polyline" ? getPolylineXAtY(shape.points, y) : [];
+  });
+  const rightXs = rightWallIndexes.flatMap((index) => {
+    const shape = stage.entities[index].shape;
+    return shape.type === "polyline" ? getPolylineXAtY(shape.points, y) : [];
+  });
+
+  if (leftXs.length === 0 || rightXs.length === 0) {
+    return null;
+  }
+
+  return {
+    left: Math.min(...leftXs),
+    right: Math.max(...rightXs),
+  };
+}
+
 describe("wheelOfFortuneStage", () => {
   it("원본 첫 맵의 goalY와 zoomY를 보존한다", () => {
     expect(wheelOfFortuneStage.title).toBe("Wheel of fortune");
@@ -314,6 +361,90 @@ describe("stage based physics", () => {
     });
     expect(marble.body.velocity.x, diagnostics).toBeGreaterThan(4);
     expect(marble.body.velocity.y, diagnostics).toBeLessThan(2);
+  });
+
+  it("polyline wall joints do not leave a pass-through gap", () => {
+    const cornerWallStage: StageDef = {
+      id: "jar",
+      title: "corner wall gap test",
+      goalY: 40,
+      zoomY: 36,
+      entities: [
+        {
+          position: { x: 0, y: 0 },
+          type: "static",
+          shape: {
+            type: "polyline",
+            points: [
+              [5, 0],
+              [5, 5],
+              [10, 5],
+            ],
+            rotation: 0,
+          },
+          props: { density: 1, angularVelocity: 0, restitution: 0 },
+        },
+      ],
+    };
+    const world = createRouletteWorld([entries[0]], { width: 1280, height: 720 }, cornerWallStage);
+    const marble = world.marbles[0];
+
+    Body.setPosition(marble.body, { x: 4.9, y: 5.1 });
+    Body.setVelocity(marble.body, { x: -2, y: 2 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const distanceFromCorner = Math.hypot(marble.body.position.x - 5, marble.body.position.y - 5);
+    const diagnostics = JSON.stringify({
+      x: marble.body.position.x,
+      y: marble.body.position.y,
+      distanceFromCorner,
+      vx: marble.body.velocity.x,
+      vy: marble.body.velocity.y,
+    });
+    expect(distanceFromCorner, diagnostics).toBeGreaterThanOrEqual(0.25);
+  });
+
+  it("Pot of greed keeps marbles inside the outer wall envelope during a long run", () => {
+    const jarEntries = Array.from({ length: 8 }, (_, index) => ({
+      id: `jar-${index}`,
+      name: `jar-${index}`,
+      label: `${index}`,
+      weight: 1,
+      duplicateIndex: 0,
+    }));
+    const world = createRouletteWorld(jarEntries, { width: 1280, height: 720 }, ROULETTE_STAGES.jar);
+
+    for (let step = 0; step < 2600; step += 1) {
+      advanceRouletteWorld(world, 16.6);
+      if (step % 36 === 0) {
+        shakeSlowMarbles(world);
+      }
+
+      for (const marble of world.marbles) {
+        const { x, y } = marble.body.position;
+        if (y < 0 || y > world.stage.goalY) {
+          continue;
+        }
+
+        const bounds = getPotOuterBoundsAt(y);
+        if (!bounds) {
+          continue;
+        }
+
+        const tolerance = 0.4;
+        const diagnostics = JSON.stringify({
+          step,
+          marble: marble.entry.id,
+          x,
+          y,
+          left: bounds.left,
+          right: bounds.right,
+        });
+        expect(x, diagnostics).toBeGreaterThanOrEqual(bounds.left - tolerance);
+        expect(x, diagnostics).toBeLessThanOrEqual(bounds.right + tolerance);
+      }
+    }
   });
 
   it("완료된 구슬은 world.marbles와 live order에서 제거된다", () => {

@@ -158,3 +158,13 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA for map switching before start.
 - [x] Commit and deploy.
+
+## 2026-06-05 Pot Of Greed Wall Containment
+
+- [x] Add a failing regression test for a marble slipping through a polyline wall joint.
+- [x] Add a Pot of greed long-run containment regression.
+- [x] Fix wall collision so marbles cannot cross stage walls between substeps.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA on Pot of greed.
+- [ ] Commit and deploy.

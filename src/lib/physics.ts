@@ -54,6 +54,7 @@ interface SceneState {
 
 const marbleRadius = 0.25;
 const railThickness = 0.22;
+const wallCollisionRadius = marbleRadius + railThickness / 2;
 const minimapScale = 4;
 const gravity = 16;
 const fixedStepMs = 1000 / 240;
@@ -191,12 +192,13 @@ function stepRouletteWorld(world: RouletteWorld, deltaSeconds: number) {
     velocity.y *= damping;
     clampVector(velocity, maxMarbleSpeed);
 
+    const previousPosition = { ...position };
     position.x += velocity.x * deltaSeconds;
     position.y += velocity.y * deltaSeconds;
 
     for (let iteration = 0; iteration < collisionIterations; iteration += 1) {
       for (const entity of world.entities) {
-        resolveEntityCollision(position, velocity, entity);
+        resolveEntityCollision(position, previousPosition, velocity, entity);
       }
       resolveWorldBounds(position, velocity);
     }
@@ -240,6 +242,7 @@ export function shakeSlowMarbles(world: RouletteWorld, finishedIds = new Set<str
 
 function resolveEntityCollision(
   position: { x: number; y: number },
+  previousPosition: { x: number; y: number },
   velocity: { x: number; y: number },
   state: StageBodyState,
 ) {
@@ -253,11 +256,22 @@ function resolveEntityCollision(
         resolveSegmentCollision(
           position,
           velocity,
+          previousPosition,
           { x: from[0] + entity.position.x, y: from[1] + entity.position.y },
           { x: to[0] + entity.position.x, y: to[1] + entity.position.y },
           wallRestitution,
           index === 0,
           index === entity.shape.points.length - 2,
+        );
+      }
+      for (let index = 1; index < entity.shape.points.length - 1; index += 1) {
+        const point = entity.shape.points[index];
+        resolvePointCollision(
+          position,
+          velocity,
+          previousPosition,
+          { x: point[0] + entity.position.x, y: point[1] + entity.position.y },
+          wallRestitution,
         );
       }
       break;
@@ -278,6 +292,7 @@ function resolveEntityCollision(
 function resolveSegmentCollision(
   position: { x: number; y: number },
   velocity: { x: number; y: number },
+  previousPosition: { x: number; y: number },
   from: { x: number; y: number },
   to: { x: number; y: number },
   restitution: number,
@@ -289,10 +304,24 @@ function resolveSegmentCollision(
     return;
   }
 
+  const crossed = segmentIntersection(previousPosition, position, from, to);
+  if (
+    crossed &&
+    !((crossed.wallT <= 0 && !includeStartCap) || (crossed.wallT >= 1 && !includeEndCap))
+  ) {
+    const sideNormal = segmentSideNormal(from, to);
+    const previousSide = dot({ x: previousPosition.x - from.x, y: previousPosition.y - from.y }, sideNormal);
+    const normal = previousSide >= 0 ? sideNormal : { x: -sideNormal.x, y: -sideNormal.y };
+    position.x = crossed.x + normal.x * wallCollisionRadius;
+    position.y = crossed.y + normal.y * wallCollisionRadius;
+    applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.08, wallSeparationSpeed);
+    return;
+  }
+
   let normal = { x: position.x - closest.x, y: position.y - closest.y };
   let distance = Math.hypot(normal.x, normal.y);
 
-  if (distance >= marbleRadius) {
+  if (distance >= wallCollisionRadius) {
     return;
   }
 
@@ -304,8 +333,50 @@ function resolveSegmentCollision(
     normal.y /= distance;
   }
 
-  position.x += normal.x * (marbleRadius - distance);
-  position.y += normal.y * (marbleRadius - distance);
+  const sideNormal = segmentSideNormal(from, to);
+  const previousSide = dot({ x: previousPosition.x - from.x, y: previousPosition.y - from.y }, sideNormal);
+  const currentSide = dot({ x: position.x - from.x, y: position.y - from.y }, sideNormal);
+  if (Math.abs(previousSide) > 0.000001 && previousSide * currentSide <= 0) {
+    normal = previousSide > 0 ? sideNormal : { x: -sideNormal.x, y: -sideNormal.y };
+    distance = Math.abs(currentSide);
+  }
+
+  position.x += normal.x * (wallCollisionRadius - distance);
+  position.y += normal.y * (wallCollisionRadius - distance);
+  applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.08, wallSeparationSpeed);
+}
+
+function resolvePointCollision(
+  position: { x: number; y: number },
+  velocity: { x: number; y: number },
+  previousPosition: { x: number; y: number },
+  point: { x: number; y: number },
+  restitution: number,
+) {
+  let normal = { x: position.x - point.x, y: position.y - point.y };
+  let distance = Math.hypot(normal.x, normal.y);
+
+  if (distance >= wallCollisionRadius) {
+    return;
+  }
+
+  if (distance < 0.000001) {
+    normal = { x: previousPosition.x - point.x, y: previousPosition.y - point.y };
+    const previousDistance = Math.hypot(normal.x, normal.y);
+    if (previousDistance < 0.000001) {
+      normal = { x: 0, y: -1 };
+    } else {
+      normal.x /= previousDistance;
+      normal.y /= previousDistance;
+    }
+    distance = 0;
+  } else {
+    normal.x /= distance;
+    normal.y /= distance;
+  }
+
+  position.x += normal.x * (wallCollisionRadius - distance);
+  position.y += normal.y * (wallCollisionRadius - distance);
   applyCollisionVelocity(velocity, normal, { x: 0, y: 0 }, restitution, 0.08, wallSeparationSpeed);
 }
 
@@ -472,6 +543,38 @@ function closestPointOnSegment(
   };
 }
 
+function segmentIntersection(
+  fromA: { x: number; y: number },
+  toA: { x: number; y: number },
+  fromB: { x: number; y: number },
+  toB: { x: number; y: number },
+) {
+  const ax = toA.x - fromA.x;
+  const ay = toA.y - fromA.y;
+  const bx = toB.x - fromB.x;
+  const by = toB.y - fromB.y;
+  const denominator = ax * by - ay * bx;
+
+  if (Math.abs(denominator) < 0.000001) {
+    return null;
+  }
+
+  const cx = fromB.x - fromA.x;
+  const cy = fromB.y - fromA.y;
+  const movementT = (cx * by - cy * bx) / denominator;
+  const wallT = (cx * ay - cy * ax) / denominator;
+
+  if (movementT < 0 || movementT > 1 || wallT < 0 || wallT > 1) {
+    return null;
+  }
+
+  return {
+    x: fromA.x + ax * movementT,
+    y: fromA.y + ay * movementT,
+    wallT,
+  };
+}
+
 function segmentFallbackNormal(
   from: { x: number; y: number },
   to: { x: number; y: number },
@@ -482,6 +585,13 @@ function segmentFallbackNormal(
   const length = Math.hypot(dx, dy) || 1;
   const normal = { x: -dy / length, y: dx / length };
   return dot(velocity, normal) < 0 ? normal : { x: -normal.x, y: -normal.y };
+}
+
+function segmentSideNormal(from: { x: number; y: number }, to: { x: number; y: number }) {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const length = Math.hypot(dx, dy) || 1;
+  return { x: -dy / length, y: dx / length };
 }
 
 function rotatePoint(x: number, y: number, cos: number, sin: number) {

@@ -165,3 +165,14 @@
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. Desktop changed wheel to bubble and bubble to night before start with different canvas hashes, status still idle, unsupported toast 0, console warning/error 0. Mobile changed wheel to jar after opening settings with the same checks.
 - Pushed `5084281` to `origin/main`. GitHub Actions Pages run `27009564132` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-CxD5splF.js`. Live browser QA changed wheel to bubble before start; canvas hash changed, status stayed idle, unsupported toast 0, console warning/error 0.
+
+## 2026-06-05 Pot Of Greed Wall Containment
+
+- User reported that Pot of greed can let marbles pass through walls and requested a hard guarantee against wall crossing.
+- Current physics resolves collisions after moving the marble to its next position. That can miss tunneling if the marble crosses a wall segment or thin box between substeps and ends outside the overlap range.
+- Success criteria are regression tests for swept wall containment, `npm test`, `npm run build`, and browser QA on Pot of greed.
+- RED confirmed a real joint gap. A marble near an L-shaped polyline corner stayed only `0.190` units from the wall joint, below the marble radius `0.25`, because internal polyline caps were skipped on both adjacent segments.
+- Pot of greed long-run containment also failed before the final fix around the lower-left outer wall envelope near y=102.
+- Implementation adds internal polyline vertex collision, swept segment crossing detection using the previous substep position, and a polyline wall collision radius that includes half the rail thickness.
+- `npm test` passed 4 files and 40 tests. `npm run build` passed with bundle `assets/index-CpyTA2Ns.js`.
+- Local browser QA on `http://127.0.0.1:5174/LuckySpin/` selected Pot of greed, started the roulette, ran 25 seconds, saw canvas motion, unsupported toast 0, console warning/error 0.
