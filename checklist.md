@@ -168,3 +168,14 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA on Pot of greed.
 - [x] Commit and deploy.
+
+## 2026-06-05 Skill Activation
+
+- [x] Add failing tests for skill cooldown, effect lifetime, and impact push.
+- [x] Connect the `스킬 활성화` checkbox to real app state.
+- [x] Trigger impact skills during a running roulette when enabled.
+- [x] Render a short impact ring effect on the canvas.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA for skill activation.
+- [ ] Commit and deploy.

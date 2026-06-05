@@ -10,6 +10,7 @@ interface RouletteCanvasProps {
   theme: ThemeMode;
   mapId: MapId;
   winnerRank: number;
+  skillsEnabled: boolean;
   winner?: RouletteResult;
   onResult: (result: RouletteResult) => void;
   onComplete: () => void;
@@ -24,6 +25,7 @@ export function RouletteCanvas({
   theme,
   mapId,
   winnerRank,
+  skillsEnabled,
   winner,
   onResult,
   onComplete,
@@ -37,6 +39,7 @@ export function RouletteCanvas({
     theme,
     mapId,
     winnerRank,
+    skillsEnabled,
     winner,
     onResult,
     onComplete,

@@ -1,6 +1,7 @@
 // Matter.js 월드와 원본 StageDef 기반 룰렛 렌더링을 담당한다.
 import { Bodies, Body, Composite, Engine } from "matter-js";
 import type { MarbleEntry, RouletteResult, ThemeMode } from "../types";
+import { getSkillEffectAlpha, getSkillEffectRadius, type SkillEffectState } from "./skills";
 import {
   initialZoom,
   ROULETTE_STAGES,
@@ -49,6 +50,7 @@ interface SceneState {
   results: RouletteResult[];
   selectedRank: number;
   stage?: StageDef;
+  skillEffects?: SkillEffectState[];
   winner?: RouletteResult;
 }
 
@@ -67,6 +69,8 @@ const maxStageRestitution = 1.5;
 const airDamping = 0.12;
 const staticSurfaceFriction = 0.1;
 const kinematicSurfaceFriction = 0.25;
+const impactSkillRadius = 10;
+const impactSkillPower = 5;
 
 const themeColors = {
   dark: {
@@ -82,6 +86,7 @@ const themeColors = {
     winnerBackground: "rgba(0, 0, 0, 0.58)",
     winnerText: "#ffffff",
     winnerOutline: "#000000",
+    skill: "#4df8ff",
   },
   light: {
     background: "#eeeeee",
@@ -96,6 +101,7 @@ const themeColors = {
     winnerBackground: "rgba(255, 255, 255, 0.62)",
     winnerText: "#4d4d4d",
     winnerOutline: "#ffffff",
+    skill: "#2563eb",
   },
 } as const;
 
@@ -236,6 +242,46 @@ export function shakeSlowMarbles(world: RouletteWorld, finishedIds = new Set<str
       y: marble.body.velocity.y + (nearGoal ? 5.5 : 3),
     };
     clampVector(nextVelocity, maxMarbleSpeed * (nearGoal ? 0.8 : 0.45));
+    Body.setVelocity(marble.body, nextVelocity);
+  }
+}
+
+export function applyImpactSkill(
+  world: RouletteWorld,
+  source: RouletteMarble,
+  finishedIds = new Set<string>(),
+) {
+  if (finishedIds.has(source.entry.id)) {
+    return;
+  }
+
+  for (const marble of world.marbles) {
+    if (marble.entry.id === source.entry.id || finishedIds.has(marble.entry.id)) {
+      continue;
+    }
+
+    let dx = marble.body.position.x - source.body.position.x;
+    let dy = marble.body.position.y - source.body.position.y;
+    let distance = Math.hypot(dx, dy);
+
+    if (distance >= impactSkillRadius) {
+      continue;
+    }
+
+    if (distance < 0.000001) {
+      const angle = ((marble.order - source.order || 1) * Math.PI) / 3;
+      dx = Math.cos(angle);
+      dy = Math.sin(angle);
+      distance = 1;
+    }
+
+    const falloff = 1 - distance / impactSkillRadius;
+    const power = (falloff * falloff * impactSkillPower) / Math.max(marble.entry.weight, 1);
+    const nextVelocity = {
+      x: marble.body.velocity.x + (dx / distance) * power,
+      y: marble.body.velocity.y + (dy / distance) * power,
+    };
+    clampVector(nextVelocity, maxMarbleSpeed);
     Body.setVelocity(marble.body, nextVelocity);
   }
 }
@@ -755,6 +801,7 @@ function drawStageView(
   applyWorldTransform(context, size, camera);
   drawEntities(context, stage, world, theme, 3 / (initialZoom * camera.zoom));
   drawWorldMarbles(context, world, scene, camera, theme);
+  drawSkillEffects(context, scene.skillEffects ?? [], camera, theme);
   context.restore();
 
   drawMarbleLabels(context, world, scene, size, camera, theme);
@@ -848,6 +895,37 @@ function drawWorldMarbles(
       context.strokeStyle = theme === "dark" ? "#ffffff" : "#111111";
       context.stroke();
     }
+  }
+}
+
+function drawSkillEffects(
+  context: CanvasRenderingContext2D,
+  effects: SkillEffectState[],
+  camera: RouletteCamera,
+  theme: ThemeMode,
+) {
+  if (effects.length === 0) {
+    return;
+  }
+
+  const color = themeColors[theme].skill;
+
+  for (const effect of effects) {
+    const alpha = getSkillEffectAlpha(effect);
+    if (alpha <= 0) {
+      continue;
+    }
+
+    context.save();
+    context.globalAlpha = alpha;
+    context.strokeStyle = color;
+    context.shadowColor = color;
+    context.shadowBlur = 8 / (initialZoom * camera.zoom);
+    context.lineWidth = 2 / (initialZoom * camera.zoom);
+    context.beginPath();
+    context.arc(effect.x, effect.y, getSkillEffectRadius(effect), 0, Math.PI * 2);
+    context.stroke();
+    context.restore();
   }
 }
 

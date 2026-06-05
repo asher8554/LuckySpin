@@ -178,3 +178,16 @@
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` selected Pot of greed, started the roulette, ran 25 seconds, saw canvas motion, unsupported toast 0, console warning/error 0.
 - Pushed `7afb5a2` to `origin/main`. GitHub Actions Pages run `27012156972` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-CpyTA2Ns.js`. Live browser QA selected Pot of greed, started the roulette, ran 15 seconds, saw canvas motion, unsupported toast 0, console warning/error 0.
+
+## 2026-06-05 Skill Activation
+
+- User requested implementing skill activation.
+- Current `스킬 활성화` checkbox is wired to the generic unsupported-feature toast and always remains unchecked.
+- Original reference roulette has an `Impact` skill that periodically creates a ring effect and pushes nearby marbles away from the source marble.
+- Scope is the smallest useful port: real checkbox state, impact cooldown while running, nearby marble impulse, and a canvas ring effect. Shop remains unsupported.
+- Success criteria are RED tests for skill timing/effects/impact, `npm test`, `npm run build`, browser QA proving the checkbox no longer shows the unsupported toast, then commit and deploy.
+- RED confirmed missing implementation. `src/lib/skills.test.ts` could not resolve `./skills`, and `applyImpactSkill` was not exported.
+- Implementation added bounded impact cooldowns, a 500ms expanding/fading ring effect, and `applyImpactSkill` that pushes nearby unfinished marbles away from the source.
+- The `스킬 활성화` checkbox now stores real app state and passes it into the roulette physics hook. The generic unsupported toast path remains only for shop.
+- `npm test` passed 5 files and 44 tests. `npm run build` passed with bundle `assets/index-CqiKKije.js`.
+- Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. It checked `스킬 활성화`, saw no unsupported toast, started a weighted run, detected 387 skill ring draw calls, saw canvas motion, and had console warning/error 0.

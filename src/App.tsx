@@ -29,6 +29,7 @@ export default function App() {
   const [customWinnerRank, setCustomWinnerRank] = useState(1);
   const [status, setStatus] = useState<RouletteStatus>("idle");
   const [collapsed, setCollapsed] = useState(true);
+  const [skillsEnabled, setSkillsEnabled] = useState(false);
   const [results, setResults] = useState<RouletteResult[]>([]);
   const [runEntries, setRunEntries] = useState<MarbleEntry[]>([]);
   const [liveEntries, setLiveEntries] = useState<MarbleEntry[]>([]);
@@ -170,6 +171,7 @@ export default function App() {
         theme={theme}
         mapId={mapId}
         winnerRank={winnerRank}
+        skillsEnabled={skillsEnabled}
         winner={winner}
         onResult={handleResult}
         onComplete={handleComplete}
@@ -185,6 +187,7 @@ export default function App() {
         winnerRank={winnerRank}
         recordingActive={recordingActive}
         recordingEnabled={recordingEnabled}
+        skillsEnabled={skillsEnabled}
         total={total}
         status={status}
         collapsed={collapsed}
@@ -196,6 +199,7 @@ export default function App() {
         onWinnerModeChange={setWinnerMode}
         onWinnerRankChange={setCustomWinnerRank}
         onRecordingChange={setRecordingEnabled}
+        onSkillsChange={setSkillsEnabled}
         onUnsupported={handleUnsupported}
         onToggleCollapsed={() => setCollapsed((value) => !value)}
       />

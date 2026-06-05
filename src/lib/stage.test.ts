@@ -5,6 +5,7 @@ import { Body } from "matter-js";
 
 import {
   advanceRouletteWorld,
+  applyImpactSkill,
   createRouletteWorld,
   drawRouletteScene,
   getLiveMarbleOrder,
@@ -189,6 +190,31 @@ describe("stage based physics", () => {
       expect(Number.isFinite(marble.body.velocity.y), diagnostics).toBe(true);
       expect(world.entities.length).toBe(stage.entities.length);
     }
+  });
+
+  it("impact skill pushes nearby marbles away from the source", () => {
+    const world = createRouletteWorld(
+      [
+        entries[0],
+        entries[1],
+        { id: "c-1-0", name: "c", label: "c", weight: 1, duplicateIndex: 0 },
+      ],
+      { width: 1280, height: 720 },
+    );
+    const [source, near, far] = world.marbles;
+
+    Body.setPosition(source.body, { x: 10, y: 10 });
+    Body.setPosition(near.body, { x: 12, y: 10 });
+    Body.setPosition(far.body, { x: 23, y: 10 });
+    Body.setVelocity(source.body, { x: 0, y: 0 });
+    Body.setVelocity(near.body, { x: 0, y: 0 });
+    Body.setVelocity(far.body, { x: 0, y: 0 });
+
+    applyImpactSkill(world, source);
+
+    expect(near.body.velocity.x).toBeGreaterThan(0.5);
+    expect(Math.abs(near.body.velocity.y)).toBeLessThan(0.1);
+    expect(Math.hypot(far.body.velocity.x, far.body.velocity.y)).toBe(0);
   });
 
   it("kinematic wheel transfers tangent velocity through collision", () => {

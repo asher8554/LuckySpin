@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { MapId, MarbleEntry, RouletteResult, RouletteStatus, ThemeMode } from "../types";
 import {
   advanceRouletteWorld,
+  applyImpactSkill,
   createRouletteWorld,
   drawRouletteScene,
   getLiveMarbleOrder,
@@ -14,6 +15,14 @@ import {
   type RouletteWorld,
   type WorldSize,
 } from "../lib/physics";
+import {
+  advanceSkillEffects,
+  createImpactSkillCooldown,
+  createImpactSkillEffect,
+  tickImpactSkillCooldown,
+  type ImpactSkillCooldown,
+  type SkillEffectState,
+} from "../lib/skills";
 
 interface UseRoulettePhysicsOptions {
   entries: MarbleEntry[];
@@ -22,6 +31,7 @@ interface UseRoulettePhysicsOptions {
   theme: ThemeMode;
   mapId: MapId;
   winnerRank: number;
+  skillsEnabled: boolean;
   winner?: RouletteResult;
   onResult: (result: RouletteResult) => void;
   onComplete: () => void;
@@ -39,6 +49,7 @@ export function useRoulettePhysics({
   theme,
   mapId,
   winnerRank,
+  skillsEnabled,
   winner,
   onResult,
   onComplete,
@@ -56,6 +67,9 @@ export function useRoulettePhysics({
   const lastLiveRankEmitRef = useRef(0);
   const resultsRef = useRef(results);
   const winnerRef = useRef(winner);
+  const skillsEnabledRef = useRef(skillsEnabled);
+  const skillCooldownsRef = useRef<Map<string, ImpactSkillCooldown>>(new Map());
+  const skillEffectsRef = useRef<SkillEffectState[]>([]);
   const [size, setSize] = useState<WorldSize>(getViewportSize);
 
   const drawCurrentScene = useCallback(() => {
@@ -76,6 +90,7 @@ export function useRoulettePhysics({
       results,
       selectedRank: winnerRank,
       stage: getStageForMap(mapId),
+      skillEffects: skillEffectsRef.current,
       winner,
     });
   }, [entries, mapId, results, size, theme, winner, winnerRank]);
@@ -96,6 +111,8 @@ export function useRoulettePhysics({
       worldRef.current = null;
     }
 
+    skillCooldownsRef.current = new Map();
+    skillEffectsRef.current = [];
     lastFrameTimeRef.current = null;
   }, []);
 
@@ -112,6 +129,10 @@ export function useRoulettePhysics({
   useEffect(() => {
     winnerRef.current = winner;
   }, [winner]);
+
+  useEffect(() => {
+    skillsEnabledRef.current = skillsEnabled;
+  }, [skillsEnabled]);
 
   useEffect(() => {
     drawCurrentScene();
@@ -135,6 +156,10 @@ export function useRoulettePhysics({
     const stage = getStageForMap(mapId);
     const world = createRouletteWorld(entries, size, stage);
     worldRef.current = world;
+    skillCooldownsRef.current = new Map(
+      world.marbles.map((marble) => [marble.entry.id, createImpactSkillCooldown(marble.entry.weight, marble.order)]),
+    );
+    skillEffectsRef.current = [];
     onLiveRank(entries);
 
     stuckAssistRef.current = window.setInterval(() => {
@@ -151,6 +176,7 @@ export function useRoulettePhysics({
       lastFrameTimeRef.current = time;
 
       if (!completedRef.current) {
+        updateSkills(world, deltaMs);
         advanceRouletteWorld(world, deltaMs);
         updateRouletteCamera(world, size, finishedIdsRef.current, winnerRank, resultCountRef.current);
         collectResults(world);
@@ -161,6 +187,35 @@ export function useRoulettePhysics({
 
       if (!completedRef.current) {
         frameRef.current = requestAnimationFrame(tick);
+      }
+    };
+
+    const updateSkills = (currentWorld: RouletteWorld, deltaMs: number) => {
+      skillEffectsRef.current = advanceSkillEffects(skillEffectsRef.current, deltaMs);
+
+      if (!skillsEnabledRef.current) {
+        return;
+      }
+
+      for (const marble of currentWorld.marbles) {
+        if (finishedIdsRef.current.has(marble.entry.id)) {
+          continue;
+        }
+
+        const currentCooldown =
+          skillCooldownsRef.current.get(marble.entry.id) ??
+          createImpactSkillCooldown(marble.entry.weight, marble.order);
+        const result = tickImpactSkillCooldown(currentCooldown, deltaMs);
+        skillCooldownsRef.current.set(marble.entry.id, result.cooldown);
+
+        if (result.triggered) {
+          applyImpactSkill(currentWorld, marble, finishedIdsRef.current);
+          skillEffectsRef.current.push(createImpactSkillEffect(marble.body.position.x, marble.body.position.y));
+        }
+      }
+
+      if (skillEffectsRef.current.length > 24) {
+        skillEffectsRef.current = skillEffectsRef.current.slice(-24);
       }
     };
 
@@ -218,6 +273,7 @@ export function useRoulettePhysics({
         entries,
         results: resultsRef.current,
         selectedRank: winnerRank,
+        skillEffects: skillEffectsRef.current,
         winner: winnerRef.current,
       });
     };

@@ -11,7 +11,6 @@ import {
   Trophy,
   Video,
 } from "lucide-react";
-import type { MouseEvent } from "react";
 import type { MapId, RouletteStatus, ThemeMode, WinnerMode } from "../types";
 import { ROULETTE_MAPS } from "../lib/roulette";
 
@@ -23,6 +22,7 @@ interface ControlPanelProps {
   winnerRank: number;
   recordingActive: boolean;
   recordingEnabled: boolean;
+  skillsEnabled: boolean;
   total: number;
   status: RouletteStatus;
   collapsed: boolean;
@@ -34,6 +34,7 @@ interface ControlPanelProps {
   onWinnerModeChange: (mode: WinnerMode) => void;
   onWinnerRankChange: (rank: number) => void;
   onRecordingChange: (enabled: boolean) => void;
+  onSkillsChange: (enabled: boolean) => void;
   onUnsupported: (feature: string) => void;
   onToggleCollapsed: () => void;
 }
@@ -46,6 +47,7 @@ export function ControlPanel({
   winnerRank,
   recordingActive,
   recordingEnabled,
+  skillsEnabled,
   total,
   status,
   collapsed,
@@ -57,14 +59,11 @@ export function ControlPanel({
   onWinnerModeChange,
   onWinnerRankChange,
   onRecordingChange,
+  onSkillsChange,
   onUnsupported,
   onToggleCollapsed,
 }: ControlPanelProps) {
   const running = status === "running";
-  const handleUnsupportedToggle = (feature: string) => (event: MouseEvent<HTMLLabelElement>) => {
-    event.preventDefault();
-    onUnsupported(feature);
-  };
 
   return (
     <section className={`control-panel ${running ? "is-running" : ""}`} aria-label="룰렛 설정">
@@ -127,12 +126,17 @@ export function ControlPanel({
               onChange={(event) => onRecordingChange(event.target.checked)}
             />
           </label>
-          <label onClick={handleUnsupportedToggle("스킬")}>
+          <label>
             <span>
               <Bomb size={24} />
               스킬 활성화
             </span>
-            <input type="checkbox" checked={false} onChange={() => undefined} />
+            <input
+              aria-label="스킬 활성화"
+              type="checkbox"
+              checked={skillsEnabled}
+              onChange={(event) => onSkillsChange(event.target.checked)}
+            />
           </label>
         </div>
 
