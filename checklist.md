@@ -188,4 +188,4 @@
 - [x] Run `npm test`.
 - [x] Run `npm run build`.
 - [x] Run browser QA for visible marble interaction.
-- [ ] Commit and deploy.
+- [x] Commit and deploy.

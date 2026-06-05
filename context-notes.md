@@ -206,3 +206,5 @@
 - `npm test` passed 5 files and 45 tests.
 - `npm run build` passed with bundle `assets/index-Bu5-EonE.js`.
 - Browser plugin QA on `http://127.0.0.1:5174/LuckySpin/` passed. It loaded the app, filled 8 marble names, clicked start, saw screenshot hash change from `531b1f34` to `f374af0b`, kept one canvas visible, and had console warning/error 0.
+- Pushed `407f301` to `origin/main`. GitHub Actions Pages run `27013748400` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-Bu5-EonE.js`.
