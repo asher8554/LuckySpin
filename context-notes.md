@@ -176,3 +176,5 @@
 - Implementation adds internal polyline vertex collision, swept segment crossing detection using the previous substep position, and a polyline wall collision radius that includes half the rail thickness.
 - `npm test` passed 4 files and 40 tests. `npm run build` passed with bundle `assets/index-CpyTA2Ns.js`.
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` selected Pot of greed, started the roulette, ran 25 seconds, saw canvas motion, unsupported toast 0, console warning/error 0.
+- Pushed `7afb5a2` to `origin/main`. GitHub Actions Pages run `27012156972` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-CpyTA2Ns.js`. Live browser QA selected Pot of greed, started the roulette, ran 15 seconds, saw canvas motion, unsupported toast 0, console warning/error 0.
