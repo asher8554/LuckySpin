@@ -193,3 +193,16 @@
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. It checked `스킬 활성화`, saw no unsupported toast, started a weighted run, detected 387 skill ring draw calls, saw canvas motion, and had console warning/error 0.
 - Pushed `c93e083` to `origin/main`. GitHub Actions Pages run `27012857791` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-CqiKKije.js`. Live browser QA checked `스킬 활성화`, saw no unsupported toast, started a weighted run, detected 387 skill ring draw calls, saw canvas motion, and had console warning/error 0.
+
+## 2026-06-05 Marble Collision
+
+- User requested physical collision between marbles.
+- Current physics updates each marble independently and only resolves collisions against stage entities and world bounds. Matter bodies are used as state containers, not as the active collision solver.
+- Scope is pairwise circle collision inside the current fixed-step physics loop: separate overlapping marbles, exchange normal velocity with visible restitution, preserve speed clamps, and avoid refactoring the renderer or stage data.
+- Success criteria are a RED test for two marbles colliding, `npm test`, `npm run build`, browser QA showing the app still runs with multiple marbles, then commit and deploy.
+- RED confirmed the missing behavior. Two marbles passed through each other, overlapped at distance `0.384`, and kept their original opposing velocities.
+- Implementation adds pairwise marble circle resolution after each fixed physics substep. Overlapping marbles are split apart, closing normal velocity is reflected with `marbleRestitution = 0.9`, and both velocities stay under the existing speed cap.
+- Targeted `npm test -- src/lib/stage.test.ts` passed 1 file and 24 tests after the fix.
+- `npm test` passed 5 files and 45 tests.
+- `npm run build` passed with bundle `assets/index-Bu5-EonE.js`.
+- Browser plugin QA on `http://127.0.0.1:5174/LuckySpin/` passed. It loaded the app, filled 8 marble names, clicked start, saw screenshot hash change from `531b1f34` to `f374af0b`, kept one canvas visible, and had console warning/error 0.

@@ -179,3 +179,13 @@
 - [x] Run `npm run build`.
 - [x] Run browser QA for skill activation.
 - [x] Commit and deploy.
+
+## 2026-06-05 Marble Collision
+
+- [x] Add a failing regression test for two marbles colliding with each other.
+- [x] Resolve marble overlap and exchange normal velocity during each physics substep.
+- [x] Keep existing wall, spinner, skill, and containment tests passing.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Run browser QA for visible marble interaction.
+- [ ] Commit and deploy.

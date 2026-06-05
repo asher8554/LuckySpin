@@ -217,6 +217,40 @@ describe("stage based physics", () => {
     expect(Math.hypot(far.body.velocity.x, far.body.velocity.y)).toBe(0);
   });
 
+  it("marbles collide with each other and rebound apart", () => {
+    const emptyStage: StageDef = {
+      id: "wheel",
+      title: "marble collision test",
+      goalY: 40,
+      zoomY: 36,
+      entities: [],
+    };
+    const world = createRouletteWorld(entries, { width: 1280, height: 720 }, emptyStage);
+    const [left, right] = world.marbles;
+
+    Body.setPosition(left.body, { x: 10, y: 10 });
+    Body.setPosition(right.body, { x: 10.55, y: 10 });
+    Body.setVelocity(left.body, { x: 5, y: 0 });
+    Body.setVelocity(right.body, { x: -5, y: 0 });
+
+    advanceRouletteWorld(world, 16.6);
+
+    const distance = Math.hypot(
+      left.body.position.x - right.body.position.x,
+      left.body.position.y - right.body.position.y,
+    );
+    const diagnostics = JSON.stringify({
+      distance,
+      leftX: left.body.position.x,
+      rightX: right.body.position.x,
+      leftVx: left.body.velocity.x,
+      rightVx: right.body.velocity.x,
+    });
+    expect(distance, diagnostics).toBeGreaterThanOrEqual(0.5);
+    expect(left.body.velocity.x, diagnostics).toBeLessThan(-2);
+    expect(right.body.velocity.x, diagnostics).toBeGreaterThan(2);
+  });
+
   it("kinematic wheel transfers tangent velocity through collision", () => {
     const kinematicStage: StageDef = {
       id: "wheel",

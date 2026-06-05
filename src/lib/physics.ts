@@ -66,6 +66,7 @@ const maxMarbleSpeed = 12;
 const wallRestitution = 0.85;
 const wallSeparationSpeed = 3;
 const maxStageRestitution = 1.5;
+const marbleRestitution = 0.9;
 const airDamping = 0.12;
 const staticSurfaceFriction = 0.1;
 const kinematicSurfaceFriction = 0.25;
@@ -213,6 +214,8 @@ function stepRouletteWorld(world: RouletteWorld, deltaSeconds: number) {
     Body.setPosition(marble.body, position);
     Body.setVelocity(marble.body, velocity);
   }
+
+  resolveMarbleCollisions(world);
 }
 
 export function removeMarbleFromWorld(world: RouletteWorld, marble: RouletteMarble) {
@@ -284,6 +287,74 @@ export function applyImpactSkill(
     clampVector(nextVelocity, maxMarbleSpeed);
     Body.setVelocity(marble.body, nextVelocity);
   }
+}
+
+function resolveMarbleCollisions(world: RouletteWorld) {
+  for (let iteration = 0; iteration < collisionIterations; iteration += 1) {
+    for (let leftIndex = 0; leftIndex < world.marbles.length - 1; leftIndex += 1) {
+      for (let rightIndex = leftIndex + 1; rightIndex < world.marbles.length; rightIndex += 1) {
+        resolveMarblePairCollision(world.marbles[leftIndex], world.marbles[rightIndex]);
+      }
+    }
+  }
+}
+
+function resolveMarblePairCollision(left: RouletteMarble, right: RouletteMarble) {
+  const minDistance = marbleRadius * 2;
+  const leftPosition = { x: left.body.position.x, y: left.body.position.y };
+  const rightPosition = { x: right.body.position.x, y: right.body.position.y };
+  let normal = {
+    x: rightPosition.x - leftPosition.x,
+    y: rightPosition.y - leftPosition.y,
+  };
+  let distance = Math.hypot(normal.x, normal.y);
+
+  if (distance >= minDistance) {
+    return;
+  }
+
+  if (distance < 0.000001) {
+    const angle = ((right.order - left.order || 1) * Math.PI) / 3;
+    normal = { x: Math.cos(angle), y: Math.sin(angle) };
+    distance = 0;
+  } else {
+    normal.x /= distance;
+    normal.y /= distance;
+  }
+
+  const penetration = minDistance - distance;
+  const correction = penetration / 2;
+  leftPosition.x -= normal.x * correction;
+  leftPosition.y -= normal.y * correction;
+  rightPosition.x += normal.x * correction;
+  rightPosition.y += normal.y * correction;
+
+  const leftVelocity = { x: left.body.velocity.x, y: left.body.velocity.y };
+  const rightVelocity = { x: right.body.velocity.x, y: right.body.velocity.y };
+  const closingSpeed = dot(
+    {
+      x: leftVelocity.x - rightVelocity.x,
+      y: leftVelocity.y - rightVelocity.y,
+    },
+    normal,
+  );
+
+  if (closingSpeed > 0) {
+    const impulse = (closingSpeed * (1 + marbleRestitution)) / 2;
+    leftVelocity.x -= normal.x * impulse;
+    leftVelocity.y -= normal.y * impulse;
+    rightVelocity.x += normal.x * impulse;
+    rightVelocity.y += normal.y * impulse;
+  }
+
+  resolveWorldBounds(leftPosition, leftVelocity);
+  resolveWorldBounds(rightPosition, rightVelocity);
+  clampVector(leftVelocity, maxMarbleSpeed);
+  clampVector(rightVelocity, maxMarbleSpeed);
+  Body.setPosition(left.body, leftPosition);
+  Body.setPosition(right.body, rightPosition);
+  Body.setVelocity(left.body, leftVelocity);
+  Body.setVelocity(right.body, rightVelocity);
 }
 
 function resolveEntityCollision(
