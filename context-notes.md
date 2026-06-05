@@ -163,3 +163,5 @@
 - Implementation added optional `scene.stage` fallback support in `drawRouletteScene` and passes `getStageForMap(mapId)` from `useRoulettePhysics` while idle.
 - `npm test` passed 4 files and 38 tests. `npm run build` passed with bundle `assets/index-CxD5splF.js`.
 - Local browser QA on `http://127.0.0.1:5174/LuckySpin/` passed. Desktop changed wheel to bubble and bubble to night before start with different canvas hashes, status still idle, unsupported toast 0, console warning/error 0. Mobile changed wheel to jar after opening settings with the same checks.
+- Pushed `5084281` to `origin/main`. GitHub Actions Pages run `27009564132` completed successfully.
+- Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-CxD5splF.js`. Live browser QA changed wheel to bubble before start; canvas hash changed, status stayed idle, unsupported toast 0, console warning/error 0.
