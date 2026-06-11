@@ -2,6 +2,7 @@
 .reference/
 .superpowers/
 .worktrees/
+.gstack/
 test-results/
 node_modules/
 dist/

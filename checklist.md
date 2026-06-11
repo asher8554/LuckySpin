@@ -199,3 +199,12 @@
 - [x] Run `npm run build`.
 - [x] Run Browser QA for the number-input flow.
 - [x] Commit and deploy.
+
+## 2026-06-11 CSO Findings Remediation
+
+- [x] Resolve action commit SHAs for the current GitHub Actions tags.
+- [x] Pin GitHub Actions workflow actions to full commit SHAs.
+- [x] Add `.gstack/` to `.gitignore` so local security reports stay private.
+- [x] Run `npm test`.
+- [x] Run `npm run build`.
+- [x] Commit the remediation.

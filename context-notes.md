@@ -224,3 +224,13 @@
 - Playwright fallback QA on `http://127.0.0.1:5174/LuckySpin/` passed. It set the saved name input to `4`, reloaded, confirmed `참가자 1` through `참가자 4`, saw `0 / 4`, started the roulette, kept generated names visible, and had console warning/error 0.
 - Pushed `848793b` to `origin/main`. GitHub Actions Pages run `27014561003` completed successfully.
 - Live `https://asher8554.github.io/LuckySpin/` loads `assets/index-C8JmRPNy.js`.
+
+## 2026-06-11 CSO Findings Remediation
+
+- User asked to remediate the CSO review findings from 2026-06-11.
+- Scope is limited to the two verified findings: pin GitHub Actions to full commit SHAs and keep local `.gstack/security-reports` out of git.
+- Plan: resolve the current action tag SHAs from the official GitHub action repositories, update `.github/workflows/deploy.yml`, add `.gstack/` to `.gitignore`, then verify with `npm test` and `npm run build`.
+- Decision: keep the workflow action versions semantically the same (`checkout@v6`, `setup-node@v6`, `configure-pages@v6`, `upload-pages-artifact@v5`, `deploy-pages@v5`) but replace mutable tags with the exact commits those tags currently point to.
+- Resolved tag SHAs: `actions/checkout@v6` -> `df4cb1c069e1874edd31b4311f1884172cec0e10`, `actions/setup-node@v6` -> `48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e`, `actions/configure-pages@v6` -> `45bfe0192ca1faeb007ade9deae92b16b8254a0d`, `actions/upload-pages-artifact@v5` -> `fc324d3547104276b827a68afc52ff2a11cc49c9`, `actions/deploy-pages@v5` -> `cd2ce8fcbc39b97be8ca5fce6e763baed58fa128`.
+- `npm test` passed 5 files and 46 tests.
+- `npm run build` passed with bundle `assets/index-C8JmRPNy.js`.
